@@ -205,7 +205,7 @@ class Chatbot:
                 else:
                     print("YES YEAR")
                     realTitle = title[size+1:-6] + ", " + article + " " + title[-6:]
-                    print(realTitle)
+                    print("real title", realTitle)
         for i in range(len(self.movieTitles)):
             movie = self.movieTitles[i]
             if(i == 0):

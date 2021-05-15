@@ -3,7 +3,7 @@
 # Original Python code by Ignacio Cases (@cases)
 ######################################################################
 import util
-
+import re
 import numpy as np
 
 
@@ -22,14 +22,15 @@ class Chatbot:
         # The values stored in each row i and column j is the rating for
         # movie i by user j
         self.titles, ratings = util.load_ratings('data/ratings.txt')
+        self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-
+      
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
-
+        
         # Binarize the movie ratings before storing the binarized matrix.
-        self.ratings = ratings
+        self.ratings = (ratings > 0.5)
         ########################################################################
         #                             END OF YOUR CODE                         #
         ########################################################################
@@ -69,7 +70,7 @@ class Chatbot:
     ############################################################################
     # 2. Modules 2 and 3: extraction and transformation                        #
     ############################################################################
-
+    
     def process(self, line):
         """Process a line of input from the REPL and generate a response.
 
@@ -96,6 +97,14 @@ class Chatbot:
         # directly based on how modular it is, we highly recommended writing   #
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
+        updatedLine = self.preprocess(line)
+        pattern = re.findall('"([^"]*)"', updatedLine)
+        if len(pattern)> 0:
+            print("So you loved ", pattern[0], ", huh?") 
+            self.find_movies_by_title(pattern[0])
+        else: 
+            print("Sorry, I don't understand. Tell me about a movie that you have seen.")
+
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
         else:
@@ -133,8 +142,8 @@ class Chatbot:
         ########################################################################
         #                             END OF YOUR CODE                         #
         ########################################################################
-
-        return text
+        
+        return text.lower()
 
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
@@ -158,7 +167,7 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        return []
+        return re.findall('"([^"]*)"', preprocessed_input)
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
@@ -178,7 +187,33 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        return []
+        
+        articles = ["a", "an", "the"]
+        titles = []
+        realTitle = title
+        containsYear = re.findall('\(\d{4}\)', title)
+        ##Titanic  OR titanic, the (1997) the
+        ##TODO: LOWERCASE VS UPPERCASE
+        for article in articles:
+            size = len(article)
+            if (title[0:size] == article):
+                print(article)
+                if(len(containsYear) == 0):
+                    print("NO YEAR")
+                    realTitle = title[size+1:] + ", " + article 
+                    print(realTitle)
+                else:
+                    print("YES YEAR")
+                    realTitle = title[size+1:-6] + ", " + article + " " + title[-6:]
+                    print(realTitle)
+        for i in range(len(self.movieTitles)):
+            movie = self.movieTitles[i]
+            if(i == 0):
+                print(movie[0][:len(realTitle)])
+            if movie[0][:len(realTitle)] == realTitle:
+                titles.append(i)
+        print("titles", titles)
+        return titles
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.

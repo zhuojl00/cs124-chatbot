@@ -25,13 +25,13 @@ class Chatbot:
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-        
+      
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
         
         # Binarize the movie ratings before storing the binarized matrix.
-        self.ratings = (ratings > 0.5)
+        self.ratings = self.binarize(ratings)
         ########################################################################
         #                             END OF YOUR CODE                         #
         ########################################################################
@@ -382,12 +382,18 @@ class Chatbot:
         # The starter code returns a new matrix shaped like ratings but full of
         # zeros.
         binarized_ratings = np.zeros_like(ratings)
-        binarized_ratings = ratings > threshold
+        # binarized_ratings = ratings > threshold
+       
+        # binarized_ratings = np.where(ratings > threshold, 1, -1) and np.where
         
-        for i in range(len(self.ratings)):
-            for j in range(len(self.ratings[0])):
-                if self.ratings
-
+        for i in range(len(ratings)):
+            for j in range(len(ratings[0])):
+                if ratings[i][j] == 0:
+                    binarized_ratings[i][j] = 0
+                elif ratings[i][j] > threshold:
+                    binarized_ratings[i][j] = 1
+                else:
+                    binarized_ratings[i][j] = -1
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################
@@ -406,7 +412,10 @@ class Chatbot:
         ########################################################################
         # TODO: Compute cosine similarity between the two vectors.             #
         ########################################################################
-        similarity = np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v) + 1e-8)
+        if  (np.linalg.norm(u) * np.linalg.norm(v)) == 0:
+            return 0
+        similarity = np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
+        # add if statment
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
@@ -434,8 +443,6 @@ class Chatbot:
         :returns: a list of k movie indices corresponding to movies in
         ratings_matrix, in descending order of recommendation.
         """
-        
-                
 
         ########################################################################
         # TODO: Implement a recommendation function that takes a vector        #
@@ -452,22 +459,45 @@ class Chatbot:
 
         # Populate this list with k movie indices to recommend to the user.
         # possible.sort(key = lambda x:-x[1])
+        # extract all the rows that we have seen
         recommendations = []
-        for i in range(ratings_matrix.shape[0]):
-            if user_ratings[i] == 0: # haven't seen, want to give a rating
-                movie_vec = ratings_matrix[i]
-                rxi = 0
-                for j in range(len(user_ratings)):
-                    if user_ratings[j] != 0: # seen, able to compare the new movie to this movie
-                        cosine_similarity = self.similarity(ratings_matrix[i], ratings_matrix[j])
-                        rxi += cosine_similarity * user_ratings[j]
-                recommendations.append((i, rxi))            
-        recommendations.sort(key = lambda x: x[1], reverse=True)
+        # rated_movies = ratings_matrix[user_ratings!=0,:] # seen, able to compare the new movie to this movie
+        # simMaxtrix = np.dot(ratings_matrix, rated_movies.T) # figure out shapes (transpose)
+        # scores = np.dot(simMaxtrix, user_ratings[user_ratings!=0])
+        # scores = np.reshape(scores, -1) #reshape for dot prodect dimension
+        # #argsort
+        # sorted_movies = np.argsort(-scores)
+        # for movie in sorted_movies:
+        #     if (user_ratings[movie] == 0):
+        #         recommendations.append(movie)
+        #         if len(recommendations) == k:
+        #             break
+
+        # loop through reccommendations until we get k recommendations we have not seen
+        check_indices = []
+        rated_indices = []
+        for i in range(len(user_ratings)):
+            if user_ratings[i] == 0:
+                check_indices.append(i)
+            else:
+                rated_indices.append(i)
         
+        rankings = []
+        for i in check_indices:
+            rxi = 0
+            movie_vec = ratings_matrix[i]
+            for j in rated_indices:
+                movie_curr = ratings_matrix[j]
+                cosine_similarity = self.similarity(movie_vec, movie_curr)
+                rxi += cosine_similarity * user_ratings[j]
+            rankings.append((i, rxi))            
+        rankings.sort(key = lambda x: x[1], reverse=True)
+        for i in range(k):
+            recommendations.append(rankings[i][0])
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################
-        return recommendations[:10]
+        return recommendations
 
     ############################################################################
     # 4. Debug info                                                            #

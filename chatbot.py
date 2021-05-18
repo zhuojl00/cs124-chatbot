@@ -6,6 +6,7 @@ import util
 import re
 import collections
 import numpy as np
+import string
 from porter_stemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
@@ -231,12 +232,16 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
+        preprocessed_input = re.sub('"([^"]*)"', ' ', preprocessed_input)
+        stemmed = {}
+        for word in self.sentiment:
+            stem_word = self.stemmer.stem(word)
+            stemmed[stem_word] = self.sentiment[word]
 
         negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't", 
         "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
 
-        neg_count = 0
-        pos_count = 0
+        count = 0
         
         negationSeen = False
         shouldSwitch = False
@@ -247,25 +252,26 @@ class Chatbot:
             # Another way to handle punctuation: word[len(word) - 1]
             # if reach negation -> switch
             # if negation has been seen and we reacch punctuation -> switch
-            if word in self.sentiment:
-                if (word in negations): 
-                    negationSeen = True
-                    shouldSwitch = True
+            if (word in negations):
+                #negationSeen = True
+                shouldSwitch = True
                 if (negationSeen and any(p in word for p in string.punctuation)):
                     shouldSwitch = not shouldSwitch
-                if self.sentiment[word] == 'pos':
+            if word in stemmed:
+                if stemmed[word] == 'pos':
                     if (shouldSwitch):
-                        pos_count -= 1
+                        count -= 1
                     else:
-                        pos_count += 1
+                        count += 1
                 else:
                     if (shouldSwitch):
-                        neg_count -= 1
+                        count += 1
                     else:
-                        neg_count += 1
-        if(pos_count > neg_count):
+                        count -= 1
+        
+        if(count >= 1):
             return 1
-        elif (pos_count == neg_count):
+        elif (count == 0):
             return 0
         return -1
 
@@ -377,6 +383,10 @@ class Chatbot:
         # zeros.
         binarized_ratings = np.zeros_like(ratings)
         binarized_ratings = ratings > threshold
+        
+        for i in range(len(self.ratings)):
+            for j in range(len(self.ratings[0])):
+                if self.ratings
 
         ########################################################################
         #                        END OF YOUR CODE                              #
@@ -396,7 +406,7 @@ class Chatbot:
         ########################################################################
         # TODO: Compute cosine similarity between the two vectors.             #
         ########################################################################
-        similarity = np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
+        similarity = np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v) + 1e-8)
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
@@ -441,22 +451,23 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        all_ratings = collections.defaultdict()
-        for i in range(len(self.titles)):
+        # possible.sort(key = lambda x:-x[1])
+        recommendations = []
+        for i in range(ratings_matrix.shape[0]):
             if user_ratings[i] == 0: # haven't seen, want to give a rating
-                movie = self.titles[i]
+                movie_vec = ratings_matrix[i]
                 rxi = 0
                 for j in range(len(user_ratings)):
                     if user_ratings[j] != 0: # seen, able to compare the new movie to this movie
-                        cosine_similarity = self.similarity(movie, self.titles[j])
+                        cosine_similarity = self.similarity(ratings_matrix[i], ratings_matrix[j])
                         rxi += cosine_similarity * user_ratings[j]
-                all_ratings[i] = rxi              
-        recommendations = dict(sorted(all_ratings.iteritems(), key = operator.itemgetter(1), reverse= True)[:10])
+                recommendations.append((i, rxi))            
+        recommendations.sort(key = lambda x: x[1], reverse=True)
         
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################
-        return recommendations
+        return recommendations[:10]
 
     ############################################################################
     # 4. Debug info                                                            #

@@ -24,7 +24,7 @@ class Chatbot:
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-      
+        
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
@@ -208,9 +208,8 @@ class Chatbot:
                     print("real title", realTitle)
         for i in range(len(self.movieTitles)):
             movie = self.movieTitles[i]
-            if(i == 0):
-                print(movie[0][:len(realTitle)])
-            if movie[0][:len(realTitle)] == realTitle:
+            
+            if movie[0][:len(realTitle)].lower() == realTitle:
                 titles.append(i)
         print("titles", titles)
         return titles
@@ -235,7 +234,22 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
-        return 0
+        neg_count = 0
+        pos_count = 0
+        
+        words = preprocessed_input.split(' ')
+        for word in words:
+            if word in self.sentiment:
+                if self.sentiment[word] == 'pos':
+                    pos_count += 1
+                else:
+                    neg_count += 1
+        
+        if(pos_count > neg_count):
+            return 1
+        elif (pos_count == neg_count):
+            return 0
+        return -1
 
     def extract_sentiment_for_movies(self, preprocessed_input):
         """Creative Feature: Extracts the sentiments from a line of
@@ -258,6 +272,7 @@ class Chatbot:
         :returns: a list of tuples, where the first item in the tuple is a movie
         title, and the second is the sentiment in the text toward that movie
         """
+        
         pass
 
     def find_movies_closest_to_title(self, title, max_distance=3):
@@ -343,6 +358,7 @@ class Chatbot:
         # The starter code returns a new matrix shaped like ratings but full of
         # zeros.
         binarized_ratings = np.zeros_like(ratings)
+        binarized_ratings = ratings > threshold
 
         ########################################################################
         #                        END OF YOUR CODE                              #
@@ -362,7 +378,7 @@ class Chatbot:
         ########################################################################
         # TODO: Compute cosine similarity between the two vectors.             #
         ########################################################################
-        similarity = 0
+        similarity = np.dot(u, v) / (np.norm(u) * np.norm(v))
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
@@ -390,6 +406,8 @@ class Chatbot:
         :returns: a list of k movie indices corresponding to movies in
         ratings_matrix, in descending order of recommendation.
         """
+        
+                
 
         ########################################################################
         # TODO: Implement a recommendation function that takes a vector        #
@@ -405,8 +423,18 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        recommendations = []
-
+        print(user_ratings)
+        # all_ratings = collections.defaultdict()
+        # for i in range(len(self.titles)):
+        #     movie = self.titles[i]
+            
+        #         rxi = 0
+        #         for j in len(user_ratings):
+        #             cosine_similarity = similarity(movie, self.titles[j])
+        #             rxi += cosine_similarity * user_ratings[j]
+        #         all_ratings[i] = rxi              
+        # recommendations = dict(sorted(all_ratings.iteritems(), key = operator.itemgetter(1), reverse= True)[:10]
+        
         ########################################################################
         #                        END OF YOUR CODE                              #
         ########################################################################

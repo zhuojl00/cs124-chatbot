@@ -4,8 +4,9 @@
 ######################################################################
 import util
 import re
+import collections
 import numpy as np
-
+from porter_stemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
 class Chatbot:
@@ -15,9 +16,8 @@ class Chatbot:
         # The chatbot's default name is `moviebot`.
         # TODO: Give your chatbot a new name.
         self.name = 'moviebot'
-
         self.creative = creative
-
+        self.stemmer = PorterStemmer()
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
@@ -143,7 +143,7 @@ class Chatbot:
         #                             END OF YOUR CODE                         #
         ########################################################################
         
-        return text.lower()
+        return text
 
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
@@ -190,6 +190,7 @@ class Chatbot:
         
         articles = ["a", "an", "the"]
         titles = []
+        title = title.lower()
         realTitle = title
         containsYear = re.findall('\(\d{4}\)', title)
         ##Titanic  OR titanic, the (1997) the
@@ -197,21 +198,17 @@ class Chatbot:
         for article in articles:
             size = len(article)
             if (title[0:size] == article):
-                print(article)
                 if(len(containsYear) == 0):
-                    print("NO YEAR")
-                    realTitle = title[size+1:] + ", " + article 
-                    print(realTitle)
+                    realTitle = title[size+1:].strip() + ", " + article 
                 else:
-                    print("YES YEAR")
-                    realTitle = title[size+1:-6] + ", " + article + " " + title[-6:]
-                    print("real title", realTitle)
+                    realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
         for i in range(len(self.movieTitles)):
             movie = self.movieTitles[i]
-            
-            if movie[0][:len(realTitle)].lower() == realTitle:
+            #if movie[0][:len(realTitle)].lower() == realTitle:
+            if (len(containsYear) != 0 and movie[0].lower() == realTitle):
                 titles.append(i)
-        print("titles", titles)
+            if (len(containsYear) == 0 and movie[0][:-7].lower() == realTitle):
+                titles.append(i)
         return titles
 
     def extract_sentiment(self, preprocessed_input):
@@ -234,17 +231,38 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: a numerical value for the sentiment of the text
         """
+
+        negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't", 
+        "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
+
         neg_count = 0
         pos_count = 0
         
+        negationSeen = False
+        shouldSwitch = False
         words = preprocessed_input.split(' ')
-        for word in words:
+        for i in range(len(words)):
+            word = self.stemmer.stem(words[i]).lower()
+            # word = words[i].lower()
+            # Another way to handle punctuation: word[len(word) - 1]
+            # if reach negation -> switch
+            # if negation has been seen and we reacch punctuation -> switch
             if word in self.sentiment:
+                if (word in negations): 
+                    negationSeen = True
+                    shouldSwitch = True
+                if (negationSeen and any(p in word for p in string.punctuation)):
+                    shouldSwitch = not shouldSwitch
                 if self.sentiment[word] == 'pos':
-                    pos_count += 1
+                    if (shouldSwitch):
+                        pos_count -= 1
+                    else:
+                        pos_count += 1
                 else:
-                    neg_count += 1
-        
+                    if (shouldSwitch):
+                        neg_count -= 1
+                    else:
+                        neg_count += 1
         if(pos_count > neg_count):
             return 1
         elif (pos_count == neg_count):
@@ -378,7 +396,7 @@ class Chatbot:
         ########################################################################
         # TODO: Compute cosine similarity between the two vectors.             #
         ########################################################################
-        similarity = np.dot(u, v) / (np.norm(u) * np.norm(v))
+        similarity = np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v))
         ########################################################################
         #                          END OF YOUR CODE                            #
         ########################################################################
@@ -423,17 +441,17 @@ class Chatbot:
         ########################################################################
 
         # Populate this list with k movie indices to recommend to the user.
-        print(user_ratings)
-        # all_ratings = collections.defaultdict()
-        # for i in range(len(self.titles)):
-        #     movie = self.titles[i]
-            
-        #         rxi = 0
-        #         for j in len(user_ratings):
-        #             cosine_similarity = similarity(movie, self.titles[j])
-        #             rxi += cosine_similarity * user_ratings[j]
-        #         all_ratings[i] = rxi              
-        # recommendations = dict(sorted(all_ratings.iteritems(), key = operator.itemgetter(1), reverse= True)[:10]
+        all_ratings = collections.defaultdict()
+        for i in range(len(self.titles)):
+            if user_ratings[i] == 0: # haven't seen, want to give a rating
+                movie = self.titles[i]
+                rxi = 0
+                for j in range(len(user_ratings)):
+                    if user_ratings[j] != 0: # seen, able to compare the new movie to this movie
+                        cosine_similarity = self.similarity(movie, self.titles[j])
+                        rxi += cosine_similarity * user_ratings[j]
+                all_ratings[i] = rxi              
+        recommendations = dict(sorted(all_ratings.iteritems(), key = operator.itemgetter(1), reverse= True)[:10])
         
         ########################################################################
         #                        END OF YOUR CODE                              #

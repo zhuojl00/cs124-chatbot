@@ -25,7 +25,7 @@ class Chatbot:
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-      
+
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
@@ -169,7 +169,19 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         return re.findall('"([^"]*)"', preprocessed_input)
+    def extract_titles_positions(self, preprocessed_input):
+        for movies in self.movies:
+            bag_of_worrd = re.split(r"\w", movie)
+        re.split(r"\w", preprocessed_input)
 
+        # helper function that checks if title of movie is a substring return -1 if movie is not substring
+        # return the index when the first word matches 
+            add(strtindex,movie title)
+            # loop through other matches and see if the ones wiht the same starting index
+            # that is a subset of the ccurrent match if so remove it
+        creativeTitles = creativeHelper(preprocessed_input)
+        titles += [title for _, title in creativeTitles] #get rid of tuples
+        titles = list(set(titles))
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
 
@@ -457,22 +469,7 @@ class Chatbot:
         # scores.                                                              #
         ########################################################################
 
-        # Populate this list with k movie indices to recommend to the user.
-        # possible.sort(key = lambda x:-x[1])
-        # extract all the rows that we have seen
         recommendations = []
-        # rated_movies = ratings_matrix[user_ratings!=0,:] # seen, able to compare the new movie to this movie
-        # simMaxtrix = np.dot(ratings_matrix, rated_movies.T) # figure out shapes (transpose)
-        # scores = np.dot(simMaxtrix, user_ratings[user_ratings!=0])
-        # scores = np.reshape(scores, -1) #reshape for dot prodect dimension
-        # #argsort
-        # sorted_movies = np.argsort(-scores)
-        # for movie in sorted_movies:
-        #     if (user_ratings[movie] == 0):
-        #         recommendations.append(movie)
-        #         if len(recommendations) == k:
-        #             break
-
         # loop through reccommendations until we get k recommendations we have not seen
         check_indices = []
         rated_indices = []

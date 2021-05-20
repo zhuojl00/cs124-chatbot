@@ -348,7 +348,21 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
-        pass
+        funnel = []
+        tokens = clarification.split()
+        #print("tokens: ", tokens)
+        for movie_index in candidates:
+            title = re.sub(r'[()]', '', self.titles[movie_index][0])
+            #print(movie_index, "title: ", title)
+            match = True
+            for t in tokens:
+                if t not in title.split():
+                    match = False
+            if match == True:
+                funnel.append(movie_index)
+
+        return funnel
+
 
     ############################################################################
     # 3. Movie Recommendation helper functions                                 #

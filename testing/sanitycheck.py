@@ -432,10 +432,10 @@ def main():
         test_similarity()
 
     if testing_creative or testing_all:
-        test_find_movies_closest_to_title()
-        test_extract_sentiment_for_movies()
+        #test_find_movies_closest_to_title()
+        #test_extract_sentiment_for_movies()
         test_disambiguate()
-        test_disambiguate_complex()
+        #test_disambiguate_complex()
 
 
 if __name__ == '__main__':

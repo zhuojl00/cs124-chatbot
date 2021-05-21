@@ -347,6 +347,29 @@ def test_recommend():
         print('recommend() sanity check passed!')
     print()
 
+def test_find_movies_by_title_disambiguate():
+    print("Testing find_movies_by_title() disambiguate functionality...")
+    chatbot = Chatbot(False)
+
+    # add more test cases here!!!
+    test_cases = [
+        ('Scream', [1142, 1357, 2629, 546]),
+        ('Percy Jackson', [7463, 8377]),
+    ]
+
+    tests_passed = True
+    for input_text, expected_output in test_cases:
+        if not assert_list_equals(
+                chatbot.find_movies_by_title(input_text),
+                expected_output,
+                "Incorrect output for find_movies_by_title_disambiguate('{}').".format(
+                    input_text),
+                orderMatters=False
+        ):
+            tests_passed = False
+    if tests_passed:
+        print('find_movies_by_title_disambiguate() sanity check passed!')
+    print()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -432,9 +455,10 @@ def main():
         test_similarity()
 
     if testing_creative or testing_all:
-        #test_find_movies_closest_to_title()
+        # test_find_movies_closest_to_title()
         #test_extract_sentiment_for_movies()
-        test_disambiguate()
+        # test_disambiguate()
+        test_find_movies_by_title_disambiguate()
         #test_disambiguate_complex()
 
 

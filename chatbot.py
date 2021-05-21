@@ -188,29 +188,48 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        
-        articles = ["a", "an", "the"]
-        titles = []
-        title = title.lower()
-        realTitle = title
-        containsYear = re.findall('\(\d{4}\)', title)
-        ##Titanic  OR titanic, the (1997) the
-        ##TODO: LOWERCASE VS UPPERCASE
-        for article in articles:
-            size = len(article)
-            if (title[0:size] == article):
-                if(len(containsYear) == 0):
-                    realTitle = title[size+1:].strip() + ", " + article 
-                else:
-                    realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
-        for i in range(len(self.movieTitles)):
-            movie = self.movieTitles[i]
-            #if movie[0][:len(realTitle)].lower() == realTitle:
-            if (len(containsYear) != 0 and movie[0].lower() == realTitle):
-                titles.append(i)
-            if (len(containsYear) == 0 and movie[0][:-7].lower() == realTitle):
-                titles.append(i)
-        return titles
+
+        if not self.creative:
+            articles = ["a", "an", "the"]
+            titles = []
+            title = title.lower()
+            realTitle = title
+            containsYear = re.findall('\(\d{4}\)', title)
+            ##Titanic  OR titanic, the (1997) the
+            ##TODO: LOWERCASE VS UPPERCASE
+            for article in articles:
+                size = len(article)
+                if (title[0:size] == article):
+                    if(len(containsYear) == 0):
+                        realTitle = title[size+1:].strip() + ", " + article
+                    else:
+                        realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
+
+            for i in range(len(self.movieTitles)):
+                movie = self.movieTitles[i]
+                #if movie[0][:len(realTitle)].lower() == realTitle:
+                if (len(containsYear) != 0 and movie[0].lower() == realTitle):
+                    titles.append(i)
+                if (len(containsYear) == 0 and movie[0][:-7].lower() == realTitle):
+                    titles.append(i)
+            return titles
+
+        else:
+            titles = []
+            title = title.lower()
+            check_tokens = title.split()
+            print("input tokens", check_tokens)
+            for i in range(len(self.movieTitles)):
+                curr_title = self.movieTitles[i][0].lower()
+                curr_title = re.sub(r'[^\w\s]', '', curr_title)
+                curr_tokens = curr_title.split()
+                if i == 8377:
+                    print("current tokens", curr_tokens)
+                if set(check_tokens).issubset(set(curr_tokens)):
+                    titles.append(i)
+            print(titles)
+            return titles
+
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
@@ -358,6 +377,7 @@ class Chatbot:
             for t in tokens:
                 if t not in title.split():
                     match = False
+
             if match == True:
                 funnel.append(movie_index)
 

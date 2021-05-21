@@ -7,8 +7,8 @@ import re
 import collections
 import numpy as np
 import string
-import pandas as pd
-from nrclex import NRCLex
+#import pandas as pd
+#from nrclex import NRCLex
 from porter_stemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
@@ -636,7 +636,7 @@ class Chatbot:
                         wordy = wordy.replace(letter, "")
             
         
-                emotion = NRCLex(wordy)
+                emotion = {"anger": 0, "disgust": 0.5, "fear": 0.2, "sadness": 0.4}#NRCLex(wordy)
             
                 top = emotion.top_emotions
                 for em in top:

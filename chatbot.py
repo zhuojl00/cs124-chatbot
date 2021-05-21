@@ -112,27 +112,31 @@ class Chatbot:
             response = "I processed {} in starter mode!!".format(line)
 
         '''TESTING FINE GRAINED SENITMENT EXTRACTION!!!'''
+        '''MUST SET self.creative to true for this to be correct'''
         sent = "I loved \"Zootopia\" "
-        print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+        #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
         sent = "\"Zootopia\" was terrible."
-        print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
+        
+        #print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
         sent = "I really reeally liked \"Zootopia\"!!!"
-        print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+        
+        
+        #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
 
         '''TESTING EDIT DISTANCE!!!!!!!!!'''
         mispell = "the notbook"
-        print("finding possible matches, expecting [5448]", self.find_movies_closest_to_title(mispell))
+        print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
         mispell = "Blargdeblargh"
-        print("finding possible matches, expecting []", self.find_movies_closest_to_title(mispell))
+        print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
 
         mispell = "BAT-MAAAN"
-        print("finding possible matches, expecting [524, 5743]", self.find_movies_closest_to_title(mispell))
+        print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
 
         mispell = "Te"
-        print("finding possible matches, expecting [8082, 4511, 1664]", self.find_movies_closest_to_title(mispell))
+        print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
 
         mispell  = "Sleeping Beaty"
-        print("finding possible matches, expecting [1656]", self.find_movies_closest_to_title(mispell))
+        print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
 
 
 
@@ -305,7 +309,8 @@ class Chatbot:
         "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
 
         multipliers = ["very", "really", "extremely", "reeally", "so", "exceedingly", "vastly", "hugely", "tremendously", "extraordinarily", "especially"]
-        highEmotions = ["love", "hate", "terrible.", "awful", "miserable", "dreadful", "amazing", "incredible", "shocked"]
+        highEmotions = ["love", "hate", "terrible", "awful", "miserable", "dreadful", "amazing", "incredible", "shocked"]
+
 
         count = 0
 
@@ -315,7 +320,13 @@ class Chatbot:
         shouldMultiply = False
         multiplierSeen = False
         
-        
+        for i in range(len(highEmotions)):
+            highEmotions[i] =  self.stemmer.stem(highEmotions[i])
+        for i in range(len(negations)):
+            negations[i] =  self.stemmer.stem(negations[i])
+        for i in range (len(multipliers)):
+            multipliers[i] =  self.stemmer.stem(multipliers[i])
+
         words = preprocessed_input.split(' ')
         for i in range(len(words)):
             highEmotion = False
@@ -324,15 +335,23 @@ class Chatbot:
             # Another way to handle punctuation: word[len(word) - 1]
             # if reach negation -> switch
             # if negation has been seen and we reacch punctuation -> switch
-            if word in highEmotions:
-                highEmotion = True
+            
             if (word in negations):
                 negationSeen = True
                 shouldSwitch = True
             if (negationSeen and any(p in word for p in string.punctuation)): 
                 shouldSwitch = not shouldSwitch
                 negationSeen = False
-            if(self.creative or True):
+            
+            for ele in word: 
+                if ele in string.punctuation: 
+                    word = word.replace(ele, "")
+            word = self.stemmer.stem(word)
+        
+            if word in highEmotions:
+                highEmotion = True
+
+            if(self.creative):
                 if (word in multipliers):
                     shouldMultiply = True
                     multiplierSeen = True
@@ -340,13 +359,14 @@ class Chatbot:
                     shouldMultiply = not shouldMultiply
                     multiplierSeen = False
             if word in stemmed:
+                #print("recognized the word!! ", word)
                 num = 1
                 if (shouldMultiply or highEmotion):
                     num *=2
                 if (shouldSwitch):
                     num *= -1
                 if stemmed[word] == 'pos':
-                    if(self.creative or True):
+                    if(self.creative):
                         print(word)
                         count += num
                     else:
@@ -356,17 +376,19 @@ class Chatbot:
                             count += 1
                             
                 else:
-                    if(self.creative or True):
-                        print(word)
+                    if(self.creative):
+                        print(word, num)
                         count -= num
                     else:
                         if (shouldSwitch):
                             count += 1
                         else:
                             count -= 1
+            #else:
+                #print("did not recognize the word :( ", word)
                     
         
-        if (False and not self.creative):
+        if (not self.creative):
             if(count >= 1):
                 return 1
             elif (count == 0):
@@ -376,7 +398,7 @@ class Chatbot:
             if(count >= 2):
                 return 2
             elif (count <= -2):
-                return 2
+                return -2
             return count
 
 
@@ -466,7 +488,6 @@ class Chatbot:
                 #print("not ", trueTitle)
 
         smallSpell = []
-        print(minimum)
         
         for i in range(len(spell)):
             if (spell_distances[i] <= minimum):

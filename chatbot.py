@@ -13,7 +13,7 @@ from porter_stemmer import PorterStemmer
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
 
-    def __init__(self, creative=False):
+    def __init__(self, creative=True):
         # The chatbot's default name is `moviebot`.
         # TODO: Give your chatbot a new name.
         self.name = 'moviebot'
@@ -168,20 +168,45 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        return re.findall('"([^"]*)"', preprocessed_input)
-    def extract_titles_positions(self, preprocessed_input):
-        for movies in self.movies:
-            bag_of_worrd = re.split(r"\w", movie)
-        re.split(r"\w", preprocessed_input)
+        preprocessed_input = preprocessed_input.lower()
+        if self.creative:
+            bag_of_input = re.split(r"\w", preprocessed_input)
+            potential_titles = {} #{startIndex: titles}
+            
+            for movietitle in self.movies:
+                bag_of_movie = re.split(r"\w", movietitle)
+                startIndex = isSubstring(bag_of_input, bag_of_movie)
+                if startIndex in potential_titles:
+                    old_title = potential_titles[startIndex]
+                    if len(old_title) < movietitle:
+                        potential_titles[startIndex] = movietitle
 
-        # helper function that checks if title of movie is a substring return -1 if movie is not substring
-        # return the index when the first word matches 
-            add(strtindex,movie title)
-            # loop through other matches and see if the ones wiht the same starting index
-            # that is a subset of the ccurrent match if so remove it
-        creativeTitles = creativeHelper(preprocessed_input)
-        titles += [title for _, title in creativeTitles] #get rid of tuples
-        titles = list(set(titles))
+                # loop through other matches and see if the ones wiht the same starting index
+                # that is a subset of the ccurrent match if so remove it
+                # creativeTitles = creativeHelper(preprocessed_input)
+            # titles += [title for _, title in potential_titles] #get rid of tuples
+            # titles = list(set(titles))
+            return potential_titles.values()
+        else: 
+            return re.findall('"([^"]*)"', preprocessed_input)
+    # helper function that checks if title of movie is a substring return -1 if movie is not substring
+    # return the index when the first word matches         
+    def isSubstring(self, bag_of_input, bag_of_movie):
+        M = len(bag_of_movie)
+        N = len(bag_of_input)
+    
+        # A loop to slide pat[] one by one
+        for i in range(N - M + 1):
+            # For current index i,
+            # check for pattern match
+            for j in range(M):
+                print(bag_of_input[i + j])
+                if (bag_of_input[i + j] != bag_of_movie[j]):
+                    break
+            if j + 1 == M :
+                return i
+        return -1
+
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
 

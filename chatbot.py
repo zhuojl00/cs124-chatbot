@@ -366,24 +366,32 @@ class Chatbot:
         the clarification
         """
         funnel = []
-        tokens = clarification.split()
+        tokens = clarification.lower().split()
         #print("tokens: ", tokens)
+
+        # disambiguate part 2
         for movie_index in candidates:
             title = re.sub(r'[()]', '', self.titles[movie_index][0])
             #print(movie_index, "title: ", title)
             match = True
             for t in tokens:
-                if t not in title.split():
+                if t not in title.lower().split():
                     match = False
 
             if match == True:
                 funnel.append(movie_index)
 
+        # disambiguate part 3 cases
         if len(funnel) == 0:
+            order = {"first": 0, "second": 1, "third": 2, "fourth": 3, "fifth": 4, "sixth": 5,
+            "seventh": 6, "eighth": 7, "nineth": 8, "tenth": 9}
+
+            # if clarification is an integer
             if clarification.isdigit():
                 index = int(clarification)
                 funnel.append(candidates[index-1])
 
+            # if clarification is just "most recent"
             elif clarification == "most recent":
                 recent_year = float('-inf')
                 recent_index = None
@@ -395,19 +403,25 @@ class Chatbot:
                         recent_index = c
                 funnel.append(recent_index)
 
-            elif "second" in clarification.lower().split():
-                funnel.append(candidates[1])
-
+            # case 1: clarification contains an order word, i.e. "first", "third"
+            # case 2: "[title tokens] one", i.e. "the goblet of fire one" (order_case = False)
             else:
-                tokens = clarification.lower().split()
-                print("input tokens", tokens)
-                if tokens[len(tokens)-1] == 'one':
-                    for c in candidates:
-                        curr_tokens = self.titles[c][0].lower().split()
-                        print("current tokens", c, curr_tokens)
-                        if set(tokens[:-1]).issubset(set(curr_tokens)):
-                            funnel.append(c)
-                            break
+                order_case = False
+                for key in order:
+                    if key in tokens:
+                        order_case = True
+                        funnel.append(candidates[order[key]])
+                        break
+
+                if order_case == False:
+                    # print("input tokens", tokens)
+                    if tokens[len(tokens)-1] == 'one':
+                        for c in candidates:
+                            curr_tokens = self.titles[c][0].lower().split()
+                            # print("current tokens", c, curr_tokens)
+                            if set(tokens[:-1]).issubset(set(curr_tokens)):
+                                funnel.append(c)
+                                break
 
         return funnel
 

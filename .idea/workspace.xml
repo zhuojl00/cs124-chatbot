@@ -4,7 +4,6 @@
     <list default="true" id="1077b2af-0f16-4503-aa22-8b02b671d89b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatbot.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatbot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testing/sanitycheck.py" beforeDir="false" afterPath="$PROJECT_DIR$/testing/sanitycheck.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +36,7 @@
       <updated>1621378504273</updated>
       <workItem from="1621378506158" duration="3810000" />
       <workItem from="1621549633307" duration="9505000" />
-      <workItem from="1621577203943" duration="3495000" />
+      <workItem from="1621577203943" duration="4657000" />
     </task>
     <servers />
   </component>

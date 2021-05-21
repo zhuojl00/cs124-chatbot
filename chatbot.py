@@ -7,6 +7,8 @@ import re
 import collections
 import numpy as np
 import string
+import pandas as pd
+from nrclex import NRCLex
 from porter_stemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
@@ -52,6 +54,15 @@ class Chatbot:
         #                             END OF YOUR CODE                         #
         ########################################################################
         return greeting_message
+
+    def validate_emotions(self, emotion):
+        negatives = ['surprise', 'disgust', 'fear', 'anger', 'negative', 'sadness']
+        positives = ["anticip", "trust", "joy"]
+        if (emotion in negatives):
+            print("Oh! I am sorry that I have caused you ", emotion, ". Please continue.")
+        if (emotion in positives):
+            print("Great! I am so glad I was able to make you ", emotion, ". Please continue.")
+
 
     def goodbye(self):
         """
@@ -100,6 +111,8 @@ class Chatbot:
         ########################################################################
         updatedLine = self.preprocess(line)
         pattern = re.findall('"([^"]*)"', updatedLine)
+        if(self.creative):
+            self.validate_emotions(self.find_emotion(line))
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -111,34 +124,38 @@ class Chatbot:
         else:
             response = "I processed {} in starter mode!!".format(line)
 
+        #print(self.find_emotion("you make me so charitable!!!"))
+
         '''TESTING FINE GRAINED SENITMENT EXTRACTION!!!'''
-        '''MUST SET self.creative to true for this to be correct'''
-        sent = "I loved \"Zootopia\" "
-        #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
-        sent = "\"Zootopia\" was terrible."
-        
-        #print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
-        sent = "I really reeally liked \"Zootopia\"!!!"
-        
-        
-        #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+        if self.creative:
+            sent = "I loved \"Zootopia\" "
+            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+            sent = "\"Zootopia\" was terrible."
+            
+            print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
+            sent = "I really reeally liked \"Zootopia\"!!!"
+            
+            
+            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
 
         '''TESTING EDIT DISTANCE!!!!!!!!!'''
-        mispell = "the notbook"
-        print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
-        mispell = "Blargdeblargh"
-        print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
+        if (self.creative):
+            mispell = "the notbook"
+            print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
+            mispell = "Blargdeblargh"
+            print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
 
-        mispell = "BAT-MAAAN"
-        print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
+            mispell = "BAT-MAAAN"
+            print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
 
-        mispell = "Te"
-        print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
+            mispell = "Te"
+            print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
 
-        mispell  = "Sleeping Beaty"
-        print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
+            mispell  = "Sleeping Beaty"
+            print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
 
 
+        
 
 
         ########################################################################
@@ -343,9 +360,9 @@ class Chatbot:
                 shouldSwitch = not shouldSwitch
                 negationSeen = False
             
-            for ele in word: 
-                if ele in string.punctuation: 
-                    word = word.replace(ele, "")
+            for letter in word: 
+                if letter in string.punctuation: 
+                    word = word.replace(letter, "")
             word = self.stemmer.stem(word)
         
             if word in highEmotions:
@@ -590,6 +607,75 @@ class Chatbot:
         #                          END OF YOUR CODE                            #
         ########################################################################
         return similarity
+    
+    def find_emotion(self, sentence):
+        filepath = "NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
+        sentence = re.sub('"([^"]*)"', ' ', sentence)
+        words = sentence.split(' ')
+        negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't"]
+        negationSeen = False
+        shouldSwitch = False
+
+        '''I got this lexicon from https://www.geeksforgeeks.org/emotion-classification-using-nrc-lexicon-in-python/ ''' 
+
+       
+        total_emotions = {}
+        for wordy in words:
+            if (wordy in negations):
+                negationSeen = True
+                shouldSwitch = True
+            if (negationSeen and any(p in wordy for p in string.punctuation)): 
+                shouldSwitch = not shouldSwitch
+                negationSeen = False
+
+            if (not shouldSwitch):
+                wordy = wordy.lower()
+                wordy = self.stemmer.stem(wordy)
+                for letter in wordy: 
+                    if letter in string.punctuation: 
+                        wordy = wordy.replace(letter, "")
+            
+        
+                emotion = NRCLex(wordy)
+            
+                top = emotion.top_emotions
+                for em in top:
+                    num = total_emotions.get(em[0], 0)
+                    if(num == 0):
+                        total_emotions[em[0]] = em[1]
+                    else:
+                        total_emotions[em[0]] += em[1]
+        sorted_emotions = dict(sorted(total_emotions.items(), key=lambda item: item[1]))
+        #print(sorted_emotions)
+
+        return list(sorted_emotions.keys())[-1]
+
+        '''
+        emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
+        sentence = re.sub('"([^"]*)"', ' ', sentence)
+        emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
+        anger = 0
+
+        words = sentence.split(' ')
+        for wordy in words:
+
+
+            wordy = wordy.lower()
+            #wordy = self.stemmer.stem(wordy)
+            print(wordy)
+            if wordy in emolex_words[emolex_words.anger == 1].word[:][1]:
+                anger += 1 
+            #print("hi everyone!! ", wordy, emolex_words[emolex_words.word == wordy].anger.type())
+            
+        #print(emolex_df.head(12))
+        #negations!!!!!! maybe also multipliers???
+
+        #anger += emolex_words[emolex_words.word == 'charitable'].anger
+        print("anger is", anger)
+        #for i in range()
+        return "anger"
+        '''
+        
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
         """Generate a list of indices of movies to recommend using collaborative

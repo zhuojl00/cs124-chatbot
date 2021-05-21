@@ -218,16 +218,14 @@ class Chatbot:
             titles = []
             title = title.lower()
             check_tokens = title.split()
-            print("input tokens", check_tokens)
+            # print("input tokens", check_tokens)
             for i in range(len(self.movieTitles)):
                 curr_title = self.movieTitles[i][0].lower()
                 curr_title = re.sub(r'[^\w\s]', '', curr_title)
                 curr_tokens = curr_title.split()
-                if i == 8377:
-                    print("current tokens", curr_tokens)
                 if set(check_tokens).issubset(set(curr_tokens)):
                     titles.append(i)
-            print(titles)
+            # print(titles)
             return titles
 
 
@@ -380,6 +378,36 @@ class Chatbot:
 
             if match == True:
                 funnel.append(movie_index)
+
+        if len(funnel) == 0:
+            if clarification.isdigit():
+                index = int(clarification)
+                funnel.append(candidates[index-1])
+
+            elif clarification == "most recent":
+                recent_year = float('-inf')
+                recent_index = None
+                for c in candidates:
+                    year = re.findall(r'\(.*?\)', self.movieTitles[c][0])[0]
+                    year = int(year.replace('(','').replace(')',''))
+                    if year > recent_year:
+                        recent_year = year
+                        recent_index = c
+                funnel.append(recent_index)
+
+            elif "second" in clarification.lower().split():
+                funnel.append(candidates[1])
+
+            else:
+                tokens = clarification.lower().split()
+                print("input tokens", tokens)
+                if tokens[len(tokens)-1] == 'one':
+                    for c in candidates:
+                        curr_tokens = self.titles[c][0].lower().split()
+                        print("current tokens", c, curr_tokens)
+                        if set(tokens[:-1]).issubset(set(curr_tokens)):
+                            funnel.append(c)
+                            break
 
         return funnel
 

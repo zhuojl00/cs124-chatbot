@@ -356,7 +356,7 @@ class Chatbot:
             if (word in negations):
                 negationSeen = True
                 shouldSwitch = True
-            if (negationSeen and any(p in word for p in string.punctuation)): 
+            if (negationSeen and any(p in word and not p == "\'" for p in string.punctuation)): 
                 shouldSwitch = not shouldSwitch
                 negationSeen = False
             
@@ -378,13 +378,13 @@ class Chatbot:
             if word in stemmed:
                 #print("recognized the word!! ", word)
                 num = 1
-                if (shouldMultiply or highEmotion):
-                    num *=2
-                if (shouldSwitch):
-                    num *= -1
+                if(self.creative):
+                    if (shouldMultiply or highEmotion):
+                        num *=2
+                    if (shouldSwitch):
+                        num *= -1
                 if stemmed[word] == 'pos':
                     if(self.creative):
-                        print(word)
                         count += num
                     else:
                         if (shouldSwitch):
@@ -394,7 +394,6 @@ class Chatbot:
                             
                 else:
                     if(self.creative):
-                        print(word, num)
                         count -= num
                     else:
                         if (shouldSwitch):
@@ -612,45 +611,74 @@ class Chatbot:
         filepath = "NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
         sentence = re.sub('"([^"]*)"', ' ', sentence)
         words = sentence.split(' ')
-        negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't"]
+        negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't", 
+        "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
+        for i in range(len(negations)):
+            negations[i] =  self.stemmer.stem(negations[i])
         negationSeen = False
         shouldSwitch = False
 
-        '''I got this lexicon from https://www.geeksforgeeks.org/emotion-classification-using-nrc-lexicon-in-python/ ''' 
+        '''I got this lexicon from the merriam-webster theasuarus. I originally tried to use some lexicons online, but I ended up just using a theaserasus instead so that I didn;t have to import anything.''' 
 
-       
-        total_emotions = {}
+        fear = ["fear", "alarm", "anxiety", "dread", "fearfulness", "fright", "horror", "panic", "scare", "terror", "trepidation", "phobia", "creeps", "jitters", "nervousness", "willies", "pang", "qualm", "twinge", 
+        "agitation", "apprehension", "consternation", "discomposure", "disquiet", "funk", "perturbation", "concern", "dismay", "worry", "cowardice", "faintheartedness", "timidity", "timorousness"]
+        anger = ["anger", "angriness", "choler", "furor", "fury", "indignation", "irateness", "ire", "lividity", "lividness", "mad", "madness", "mood", "outrage", "rage", "spleen", "wrath", "wrathfulness",
+        "aggravation", "annoyance", "exasperation", "irritation", "vexation", "acrimoniousness", "acrimony", "animosity", "antagonism", "antipathy", "bile", "biliousness", "bitterness", "contempt",
+        "embitterment", "empoisonment", "enmity", "grudge", "hostility", "rancor", "envy", "jaundice", "jealousy", "pique", "resentment", "malevolence", "malice", "spite", "vengefulness", "venom", "vindictiveness", "virulence", "vitriol",
+        "belligerence", "contentiousness", "contrariness", "crankiness", "disputatiousness"]
+        anticipation = ["anticipation", "contemplation", "expectance", "expectancy", "expectation", "prospect"]
+        trust = ["trust", "rely", "believe", "assign", "charge", "commission", "entrust", "task", "confer", "impose", "commit", "confide", "consign", "delegate", "recommend", "relegate", "repose", "allocate", "allot", "authorize", "empower", "invest", 
+        "commend", "commit", "confide", "consign", "delegate", "deliver", "entrust", "give", "vest"]
+        surprise = ["bombshell", "jar", "jaw-dropper", "jolt", "stunner", "shock", "thunderclap", "eye-opener", "revelation", "shocker", "amazement", "marvel", "wonder", "fillip", "kick", "kicker", 'twist', "wrinkle"]
+        disgust = ["aversion", "distaste", "horror", "loathing", "nausea", "repugnance", "repulsion", "revulsion", "abhorrence", "abomination", "antipathy", "execration", "hate", "hatred",
+        "allergy", "averseness", "disapproval", "disfavor", "disinclination", "dislike", "disliking", "displeasure"]
+        joy = ["elatedness", "love", "like", "pleasure", "good", "elation", "exhilaration", "exultation", "high", "intoxication", "ecstasy", "euphoria", "glory", "heaven", "nirvana", "paradise", "rapture", "rapturousness", "ravishment", "transport", "delectation", "delight", "enjoyment", "pleasure", 
+        "cheer", "cheerfulness", "comfort", "exuberance", "gaiety", "gladsomeness", "glee", "gleefulness", "jocundity", "jollity", "joyfulness", "joyousness", "jubilance", "jubilation", "lightheartedness", "merriness", "mirth", "content", "contentedness", "gratification", "satisfaction", "triumph"]
+        emotion_names = ["fear", "anger", "anticipation", "trust", "disgust", "surprise", "joy"]
+        total_emotions = [fear, anger, anticipation, trust, disgust, surprise, joy]
+        emotion_scores = [0, 0, 0, 0, 0, 0, 0]
+        for i in range(len(total_emotions)):
+            for j in range(len(total_emotions[i])):
+                total_emotions[i][j] = wordy = self.stemmer.stem(total_emotions[i][j])
+
+
         for wordy in words:
+            wordy = wordy.lower()
+            wordy = self.stemmer.stem(wordy)
             if (wordy in negations):
                 negationSeen = True
                 shouldSwitch = True
-            if (negationSeen and any(p in wordy for p in string.punctuation)): 
+            if (negationSeen and any(p in wordy and not p == "\'" for p in string.punctuation)): 
                 shouldSwitch = not shouldSwitch
                 negationSeen = False
 
             if (not shouldSwitch):
-                wordy = wordy.lower()
-                wordy = self.stemmer.stem(wordy)
                 for letter in wordy: 
                     if letter in string.punctuation: 
                         wordy = wordy.replace(letter, "")
             
+                for i in range(len(total_emotions)):
+                    if wordy in total_emotions[i]:
+                        emotion_scores[i] += 1
+        return emotion_names[emotion_scores.index(max(emotion_scores))]
         
-                emotion = {"anger": 0, "disgust": 0.5, "fear": 0.2, "sadness": 0.4}#NRCLex(wordy)
+                #emotion = {"anger": 0, "disgust": 0.5, "fear": 0.2, "sadness": 0.4}#NRCLex(wordy)
             
-                top = emotion.top_emotions
-                for em in top:
-                    num = total_emotions.get(em[0], 0)
-                    if(num == 0):
-                        total_emotions[em[0]] = em[1]
-                    else:
-                        total_emotions[em[0]] += em[1]
+    '''top = emotion.top_emotions
+    for em in top:
+        num = total_emotions.get(em[0], 0)
+        if(num == 0):
+            total_emotions[em[0]] = em[1]
+        else:
+            total_emotions[em[0]] += em[1]
+
         sorted_emotions = dict(sorted(total_emotions.items(), key=lambda item: item[1]))
         #print(sorted_emotions)
 
         return list(sorted_emotions.keys())[-1]
 
-        '''
+
+        
         emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
         sentence = re.sub('"([^"]*)"', ' ', sentence)
         emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()

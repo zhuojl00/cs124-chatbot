@@ -110,14 +110,31 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         updatedLine = self.preprocess(line)
-        pattern = re.findall('"([^"]*)"', updatedLine)
         if(self.creative):
             self.validate_emotions(self.find_emotion(line))
-        if len(pattern)> 0:
-            print("So you loved ", pattern[0], ", huh?") 
-            self.find_movies_by_title(pattern[0])
-        else: 
-            print("Sorry, I don't understand. Tell me about a movie that you have seen.")
+        all_candidates = []
+        for i in range(len(self.movieTitles)):
+            all_candidates.append(i)
+        exact = self.disambiguate(updatedLine, all_candidates)
+        if len(exact) == 1:
+            movie_index = exact[0]
+            print("Great, you liked", self.movieTitles[movie_index][0])
+
+        else:
+            pattern = re.findall('"([^"]*)"', updatedLine)
+            if len(pattern) > 0:
+                candidate_index = self.find_movies_by_title(pattern[0])
+                candidate_title = []
+                for c in candidate_index:
+                    candidate_title.append(self.movieTitles[c][0])
+
+                if len(candidate_index) == 1:
+                    print("So you loved ", pattern[0], ", huh?")
+                else:
+                    print("Which one did you mean?", ', '.join(candidate_title))
+            else:
+                print("Sorry, I don't understand. Tell me about a movie that you have seen.")
+        
 
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
@@ -272,29 +289,46 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        
-        articles = ["a", "an", "the"]
-        titles = []
-        title = title.lower()
-        realTitle = title
-        containsYear = re.findall('\(\d{4}\)', title)
-        ##Titanic  OR titanic, the (1997) the
-        ##TODO: LOWERCASE VS UPPERCASE
-        for article in articles:
-            size = len(article)
-            if (title[0:size] == article):
-                if(len(containsYear) == 0):
-                    realTitle = title[size+1:].strip() + ", " + article 
-                else:
-                    realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
-        for i in range(len(self.movieTitles)):
-            movie = self.movieTitles[i]
-            #if movie[0][:len(realTitle)].lower() == realTitle:
-            if (len(containsYear) != 0 and movie[0].lower() == realTitle):
-                titles.append(i)
-            if (len(containsYear) == 0 and movie[0][:-7].lower() == realTitle):
-                titles.append(i)
-        return titles
+
+        if not self.creative:
+            articles = ["a", "an", "the"]
+            titles = []
+            title = title.lower()
+            realTitle = title
+            containsYear = re.findall('\(\d{4}\)', title)
+            ##Titanic  OR titanic, the (1997) the
+            ##TODO: LOWERCASE VS UPPERCASE
+            for article in articles:
+                size = len(article)
+                if (title[0:size] == article):
+                    if(len(containsYear) == 0):
+                        realTitle = title[size+1:].strip() + ", " + article
+                    else:
+                        realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
+
+            for i in range(len(self.movieTitles)):
+                movie = self.movieTitles[i]
+                #if movie[0][:len(realTitle)].lower() == realTitle:
+                if (len(containsYear) != 0 and movie[0].lower() == realTitle):
+                    titles.append(i)
+                if (len(containsYear) == 0 and movie[0][:-7].lower() == realTitle):
+                    titles.append(i)
+            return titles
+
+        else:
+            titles = []
+            title = title.lower()
+            check_tokens = title.split()
+            # print("input tokens", check_tokens)
+            for i in range(len(self.movieTitles)):
+                curr_title = self.movieTitles[i][0].lower()
+                curr_title = re.sub(r'[^\w\s]', '', curr_title)
+                curr_tokens = curr_title.split()
+                if set(check_tokens).issubset(set(curr_tokens)):
+                    titles.append(i)
+            # print(titles)
+            return titles
+
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
@@ -534,7 +568,66 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
-        pass
+        funnel = []
+        tokens = clarification.lower().split()
+        #print("tokens: ", tokens)
+
+        # disambiguate part 2
+        for movie_index in candidates:
+            title = re.sub(r'[()]', '', self.titles[movie_index][0])
+            #print(movie_index, "title: ", title)
+            match = True
+            for t in tokens:
+                if t not in title.lower().split():
+                    match = False
+
+            if match == True:
+                funnel.append(movie_index)
+
+        # disambiguate part 3 cases
+        if len(funnel) == 0:
+            order = {"first": 0, "second": 1, "third": 2, "fourth": 3, "fifth": 4, "sixth": 5,
+            "seventh": 6, "eighth": 7, "nineth": 8, "tenth": 9}
+
+            # if clarification is an integer
+            if clarification.isdigit():
+                index = int(clarification)
+                funnel.append(candidates[index-1])
+
+            # if clarification is just "most recent"
+            elif clarification == "most recent":
+                recent_year = float('-inf')
+                recent_index = None
+                for c in candidates:
+                    year = re.findall(r'\(.*?\)', self.movieTitles[c][0])[0]
+                    year = int(year.replace('(','').replace(')',''))
+                    if year > recent_year:
+                        recent_year = year
+                        recent_index = c
+                funnel.append(recent_index)
+
+            # case 1: clarification contains an order word, i.e. "first", "third"
+            # case 2: "[title tokens] one", i.e. "the goblet of fire one" (order_case = False)
+            else:
+                order_case = False
+                for key in order:
+                    if key in tokens:
+                        order_case = True
+                        funnel.append(candidates[order[key]])
+                        break
+
+                if order_case == False:
+                    # print("input tokens", tokens)
+                    if tokens[len(tokens)-1] == 'one':
+                        for c in candidates:
+                            curr_tokens = self.titles[c][0].lower().split()
+                            # print("current tokens", c, curr_tokens)
+                            if set(tokens[:-1]).issubset(set(curr_tokens)):
+                                funnel.append(c)
+                                break
+
+        return funnel
+
 
     ############################################################################
     # 3. Movie Recommendation helper functions                                 #

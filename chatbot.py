@@ -101,6 +101,8 @@ class Chatbot:
         ########################################################################
         updatedLine = self.preprocess(line)
         pattern = self.extract_titles(updatedLine)
+        print("potential_titles", self.potential_titles)
+        print("pattern ", pattern)
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -160,7 +162,7 @@ class Chatbot:
                 if (splited_input[i:i+M] == splited_movie):
                     return i
         return -1
-        
+
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
 
@@ -183,25 +185,23 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        print("hello")
-        preprocessed_input = preprocessed_input.lower()
-        # self.potential_titles["hi"] = "bye"
         if self.creative:
-            # print("bye")
-            splited_input = re.split(r'\w', preprocessed_input)
-            # self.potential_titles[splited_input] = "hi"
+            input_lower = preprocessed_input.lower()
+            splited_input = re.split(r' ', input_lower)
+            print(splited_input)
             for movie in self.movieTitles:
-                movietitle = movie[0]
-                splited_movie = re.split(r'\w', movietitle)
-                startIndex = isSubstring(splited_input, splited_movie)
-                if startIndex in potential_titles:
-                    old_title = potential_titles[startIndex]
-                    if len(old_title) < len(movietitle):
+                movietitle = movie[0].lower()
+                splited_movie = re.split(r' ', movietitle)
+                print(splited_movie)
+                startIndex = self.isSubstring(splited_input, splited_movie)
+                if startIndex >= 0:
+                    if startIndex in self.potential_titles:
+                        old_title = self.potential_titles[startIndex]
+                        if len(old_title) < len(movietitle):
+                            self.potential_titles[startIndex] = movietitle
+                    else:
                         self.potential_titles[startIndex] = movietitle
-                else:
-                    self.potential_titles[startIndex] = movietitle
-            print(self.potential_titles)
-            return self.potential_titles.values()
+            return list(self.potential_titles.values())
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
 
@@ -223,8 +223,6 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        # self.potential_titles["movies"] = "bye"
-        # print(self.potential_titles)
         articles = ["a", "an", "the"]
         titles = []
         title = title.lower()

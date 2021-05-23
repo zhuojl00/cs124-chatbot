@@ -100,7 +100,7 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         updatedLine = self.preprocess(line)
-        pattern = re.findall('"([^"]*)"', updatedLine)
+        pattern = chatbot.extract_titles(updatedLine)
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -174,27 +174,23 @@ class Chatbot:
         # self.potential_titles["hi"] = "bye"
         if self.creative:
             # print("bye")
-            splited_input = re.split(r"\w", preprocessed_input)
+            splited_input = re.split(r" ", preprocessed_input)
             self.potential_titles[splited_input] = "hi"
             for movietitle in self.movies:
-                splited_movie = re.split(r"\w", movietitle)
+                splited_movie = re.split(r" ", movietitle)
                 startIndex = isSubstring(splited_input, splited_movie)
                 if startIndex in potential_titles:
                     old_title = potential_titles[startIndex]
-                    if len(old_title) < movietitle:
+                    if len(old_title) < len(movietitle):
                         self.potential_titles[startIndex] = movietitle
                 else:
                     self.potential_titles[startIndex] = movietitle
-                # loop through other matches and see if the ones wiht the same starting index
-                # that is a subset of the ccurrent match if so remove it
-            # titles += [title for _, title in potential_titles] #get rid of tuples
-            # titles = list(set(titles))
             return self.potential_titles.values()
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
+    
     # helper function that checks if title of movie is a substring return -1 if movie is not substring
     # return the index when the first word matches    
-
     def isSubstring(self, splited_input, splited_movie):
         # fullString = ''.join(splited_input)
         # subString = ''.join(splited_movie)

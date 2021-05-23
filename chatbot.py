@@ -99,12 +99,29 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         updatedLine = self.preprocess(line)
-        pattern = re.findall('"([^"]*)"', updatedLine)
-        if len(pattern)> 0:
-            print("So you loved ", pattern[0], ", huh?") 
-            self.find_movies_by_title(pattern[0])
-        else: 
-            print("Sorry, I don't understand. Tell me about a movie that you have seen.")
+
+        all_candidates = []
+        for i in range(len(self.movieTitles)):
+            all_candidates.append(i)
+        exact = self.disambiguate(updatedLine, all_candidates)
+        if len(exact) == 1:
+            movie_index = exact[0]
+            print("Great, you liked", self.movieTitles[movie_index][0])
+
+        else:
+            pattern = re.findall('"([^"]*)"', updatedLine)
+            if len(pattern) > 0:
+                candidate_index = self.find_movies_by_title(pattern[0])
+                candidate_title = []
+                for c in candidate_index:
+                    candidate_title.append(self.movieTitles[c][0])
+
+                if len(candidate_index) == 1:
+                    print("So you loved ", pattern[0], ", huh?")
+                else:
+                    print("Which one did you mean?", ', '.join(candidate_title))
+            else:
+                print("Sorry, I don't understand. Tell me about a movie that you have seen.")
 
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)

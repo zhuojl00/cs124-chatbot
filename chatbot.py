@@ -7,6 +7,8 @@ import re
 import collections
 import numpy as np
 import string
+#import pandas as pd
+#from nrclex import NRCLex
 from porter_stemmer import PorterStemmer
 
 # noinspection PyMethodMayBeStatic
@@ -52,6 +54,15 @@ class Chatbot:
         #                             END OF YOUR CODE                         #
         ########################################################################
         return greeting_message
+
+    def validate_emotions(self, emotion):
+        negatives = ['surprise', 'disgust', 'fear', 'anger', 'negative', 'sadness']
+        positives = ["anticip", "trust", "joy"]
+        if (emotion in negatives):
+            print("Oh! I am sorry that I have caused you ", emotion, ". Please continue.")
+        if (emotion in positives):
+            print("Great! I am so glad I was able to make you ", emotion, ". Please continue.")
+
 
     def goodbye(self):
         """
@@ -100,6 +111,8 @@ class Chatbot:
         ########################################################################
         updatedLine = self.preprocess(line)
         pattern = re.findall('"([^"]*)"', updatedLine)
+        if(self.creative):
+            self.validate_emotions(self.find_emotion(line))
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -110,6 +123,40 @@ class Chatbot:
             response = "I processed {} in creative mode!!".format(line)
         else:
             response = "I processed {} in starter mode!!".format(line)
+
+        #print(self.find_emotion("you make me so charitable!!!"))
+
+        '''TESTING FINE GRAINED SENITMENT EXTRACTION!!!'''
+        if self.creative:
+            sent = "I loved \"Zootopia\" "
+            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+            sent = "\"Zootopia\" was terrible."
+            
+            print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
+            sent = "I really reeally liked \"Zootopia\"!!!"
+            
+            
+            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+
+        '''TESTING EDIT DISTANCE!!!!!!!!!'''
+        if (self.creative):
+            mispell = "the notbook"
+            print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
+            mispell = "Blargdeblargh"
+            print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
+
+            mispell = "BAT-MAAAN"
+            print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
+
+            mispell = "Te"
+            print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
+
+            mispell  = "Sleeping Beaty"
+            print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
+
+
+        
+
 
         ########################################################################
         #                          END OF YOUR CODE                            #
@@ -146,6 +193,8 @@ class Chatbot:
         
         return text
 
+
+
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
 
@@ -169,6 +218,41 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         return re.findall('"([^"]*)"', preprocessed_input)
+    
+    def edit_distance (self, string1, string2):
+        matrix = np.zeros([len(string1) + 1, len(string2) + 1])
+        #matrix[0][0] = 0
+        for i in range(len(string2)+1):
+            matrix[len(string1)][i] = i 
+
+        for j in range(len(string1)+1):
+            matrix[j][0] = len(string1) - j 
+        #print("start matrix", matrix)
+        for i in range(1, len(string2) + 1):
+            for j in range(1, len(string1) + 1):
+                sub = matrix[len(string1) - j + 1][i - 1]
+                if(string1[j - 1] != string2[i - 1]):
+                    sub += 2
+                #print(matrix[len(string1) - j + 1][i])
+
+                e1 = matrix[len(string1) - j + 1][i] + 1
+                e2 = matrix[len(string1) - j][i - 1]+ 1
+                
+                poss = np.array([sub, e1, e2])
+                matrix[len(string1) - j][i] =  poss.min()
+        
+        return matrix[0][len(string2)]
+        '''if(string1 == string2):
+            return 0
+        if (len(string1) == 0):
+            return len(string2)
+        if (len(string2) == 0):
+            return len(string1)
+        sub = 2 + self.edit_distance(string1[1:], string2[1:])
+        e1 = 1 + self.edit_distance(string1[1:], string2)
+        e2 = 1 + self.edit_distance(string1, string2[1:])
+        '''
+        
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.
@@ -241,39 +325,98 @@ class Chatbot:
         negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't", 
         "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
 
+        multipliers = ["very", "really", "extremely", "reeally", "so", "exceedingly", "vastly", "hugely", "tremendously", "extraordinarily", "especially"]
+        highEmotions = ["love", "hate", "terrible", "awful", "miserable", "dreadful", "amazing", "incredible", "shocked"]
+
+
         count = 0
+
         
         negationSeen = False
         shouldSwitch = False
+        shouldMultiply = False
+        multiplierSeen = False
+        
+        for i in range(len(highEmotions)):
+            highEmotions[i] =  self.stemmer.stem(highEmotions[i])
+        for i in range(len(negations)):
+            negations[i] =  self.stemmer.stem(negations[i])
+        for i in range (len(multipliers)):
+            multipliers[i] =  self.stemmer.stem(multipliers[i])
+
         words = preprocessed_input.split(' ')
         for i in range(len(words)):
+            highEmotion = False
             word = self.stemmer.stem(words[i]).lower()
             # word = words[i].lower()
             # Another way to handle punctuation: word[len(word) - 1]
             # if reach negation -> switch
             # if negation has been seen and we reacch punctuation -> switch
+            
             if (word in negations):
-                #negationSeen = True
+                negationSeen = True
                 shouldSwitch = True
-                if (negationSeen and any(p in word for p in string.punctuation)):
-                    shouldSwitch = not shouldSwitch
-            if word in stemmed:
-                if stemmed[word] == 'pos':
-                    if (shouldSwitch):
-                        count -= 1
-                    else:
-                        count += 1
-                else:
-                    if (shouldSwitch):
-                        count += 1
-                    else:
-                        count -= 1
+            if (negationSeen and any(p in word and not p == "\'" for p in string.punctuation)): 
+                shouldSwitch = not shouldSwitch
+                negationSeen = False
+            
+            for letter in word: 
+                if letter in string.punctuation: 
+                    word = word.replace(letter, "")
+            word = self.stemmer.stem(word)
         
-        if(count >= 1):
-            return 1
-        elif (count == 0):
-            return 0
-        return -1
+            if word in highEmotions:
+                highEmotion = True
+
+            if(self.creative):
+                if (word in multipliers):
+                    shouldMultiply = True
+                    multiplierSeen = True
+                if (multiplierSeen and any(p in word for p in string.punctuation)): 
+                    shouldMultiply = not shouldMultiply
+                    multiplierSeen = False
+            if word in stemmed:
+                #print("recognized the word!! ", word)
+                num = 1
+                if(self.creative):
+                    if (shouldMultiply or highEmotion):
+                        num *=2
+                    if (shouldSwitch):
+                        num *= -1
+                if stemmed[word] == 'pos':
+                    if(self.creative):
+                        count += num
+                    else:
+                        if (shouldSwitch):
+                            count -= 1
+                        else:
+                            count += 1
+                            
+                else:
+                    if(self.creative):
+                        count -= num
+                    else:
+                        if (shouldSwitch):
+                            count += 1
+                        else:
+                            count -= 1
+            #else:
+                #print("did not recognize the word :( ", word)
+                    
+        
+        if (not self.creative):
+            if(count >= 1):
+                return 1
+            elif (count == 0):
+                return 0
+            return -1
+        else: 
+            if(count >= 2):
+                return 2
+            elif (count <= -2):
+                return -2
+            return count
+
 
     def extract_sentiment_for_movies(self, preprocessed_input):
         """Creative Feature: Extracts the sentiments from a line of
@@ -316,14 +459,57 @@ class Chatbot:
         Example:
           # should return [1656]
           chatbot.find_movies_closest_to_title("Sleeping Beaty")
+          
+
 
         :param title: a potentially misspelled title
         :param max_distance: the maximum edit distance to search for
         :returns: a list of movie indices with titles closest to the given title
         and within edit distance max_distance
         """
+        spell = []
+        minimum = max_distance + 3
+        spell_distances = []
+        #spell[i] contains the index of the movie that has an edit distance of spell_distances[i]
 
-        pass
+
+        articles = ["a", "an", "the"]
+        title = title.lower()
+        realTitle = title
+        containsYear = re.findall('\(\d{4}\)', title)
+
+        for article in articles:
+            size = len(article)
+            if (title[0:size] == article):
+                if(len(containsYear) == 0):
+                    realTitle = title[size+1:].strip() + ", " + article 
+                else:
+                    realTitle = title[size+1:-6].strip() + ", " + article + " " + title[-6:]
+        for i in range(len(self.movieTitles)):
+            movie = self.movieTitles[i]
+            trueTitle = ""
+            if (len(containsYear) != 0):
+                trueTitle = movie[0].lower()
+            else:
+                trueTitle = movie[0][:-7].lower()
+    
+
+            edit_dist = self.edit_distance(trueTitle, realTitle)
+            #print(edit_dist)
+            if (edit_dist <= max_distance):
+                minimum = np.array([minimum, edit_dist]).min()
+                spell.append(i)
+                spell_distances.append(edit_dist)
+            #else:
+                #print("not ", trueTitle)
+
+        smallSpell = []
+        
+        for i in range(len(spell)):
+            if (spell_distances[i] <= minimum):
+                print(spell_distances[i])
+                smallSpell.append(spell[i])
+        return smallSpell
 
     def disambiguate(self, clarification, candidates):
         """Creative Feature: Given a list of movies that the user could be
@@ -420,6 +606,104 @@ class Chatbot:
         #                          END OF YOUR CODE                            #
         ########################################################################
         return similarity
+    
+    def find_emotion(self, sentence):
+        filepath = "NRC-Emotion-Lexicon-Wordlevel-v0.92.txt"
+        sentence = re.sub('"([^"]*)"', ' ', sentence)
+        words = sentence.split(' ')
+        negations = ["no", "not", "none", "noone", "nobody", "nothing", "neither", "nowhere", "never", "didn't", 
+        "hardly", "scarcely", "barely", "doesn’t", "isn’t", "wasn’t", "shouldn’t", "wouldn’t", "couldn’t", "won’t", "can’t", "don’t"]
+        for i in range(len(negations)):
+            negations[i] =  self.stemmer.stem(negations[i])
+        negationSeen = False
+        shouldSwitch = False
+
+        '''I got this lexicon from the merriam-webster theasuarus. I originally tried to use some lexicons online, but I ended up just using a theaserasus instead so that I didn;t have to import anything.''' 
+
+        fear = ["fear", "alarm", "anxiety", "dread", "fearfulness", "fright", "horror", "panic", "scare", "terror", "trepidation", "phobia", "creeps", "jitters", "nervousness", "willies", "pang", "qualm", "twinge", 
+        "agitation", "apprehension", "consternation", "discomposure", "disquiet", "funk", "perturbation", "concern", "dismay", "worry", "cowardice", "faintheartedness", "timidity", "timorousness"]
+        anger = ["anger", "angriness", "choler", "furor", "fury", "indignation", "irateness", "ire", "lividity", "lividness", "mad", "madness", "mood", "outrage", "rage", "spleen", "wrath", "wrathfulness",
+        "aggravation", "annoyance", "exasperation", "irritation", "vexation", "acrimoniousness", "acrimony", "animosity", "antagonism", "antipathy", "bile", "biliousness", "bitterness", "contempt",
+        "embitterment", "empoisonment", "enmity", "grudge", "hostility", "rancor", "envy", "jaundice", "jealousy", "pique", "resentment", "malevolence", "malice", "spite", "vengefulness", "venom", "vindictiveness", "virulence", "vitriol",
+        "belligerence", "contentiousness", "contrariness", "crankiness", "disputatiousness"]
+        anticipation = ["anticipation", "contemplation", "expectance", "expectancy", "expectation", "prospect"]
+        trust = ["trust", "rely", "believe", "assign", "charge", "commission", "entrust", "task", "confer", "impose", "commit", "confide", "consign", "delegate", "recommend", "relegate", "repose", "allocate", "allot", "authorize", "empower", "invest", 
+        "commend", "commit", "confide", "consign", "delegate", "deliver", "entrust", "give", "vest"]
+        surprise = ["bombshell", "jar", "jaw-dropper", "jolt", "stunner", "shock", "thunderclap", "eye-opener", "revelation", "shocker", "amazement", "marvel", "wonder", "fillip", "kick", "kicker", 'twist', "wrinkle"]
+        disgust = ["aversion", "distaste", "horror", "loathing", "nausea", "repugnance", "repulsion", "revulsion", "abhorrence", "abomination", "antipathy", "execration", "hate", "hatred",
+        "allergy", "averseness", "disapproval", "disfavor", "disinclination", "dislike", "disliking", "displeasure"]
+        joy = ["elatedness", "love", "like", "pleasure", "good", "elation", "exhilaration", "exultation", "high", "intoxication", "ecstasy", "euphoria", "glory", "heaven", "nirvana", "paradise", "rapture", "rapturousness", "ravishment", "transport", "delectation", "delight", "enjoyment", "pleasure", 
+        "cheer", "cheerfulness", "comfort", "exuberance", "gaiety", "gladsomeness", "glee", "gleefulness", "jocundity", "jollity", "joyfulness", "joyousness", "jubilance", "jubilation", "lightheartedness", "merriness", "mirth", "content", "contentedness", "gratification", "satisfaction", "triumph"]
+        emotion_names = ["fear", "anger", "anticipation", "trust", "disgust", "surprise", "joy"]
+        total_emotions = [fear, anger, anticipation, trust, disgust, surprise, joy]
+        emotion_scores = [0, 0, 0, 0, 0, 0, 0]
+        for i in range(len(total_emotions)):
+            for j in range(len(total_emotions[i])):
+                total_emotions[i][j] = wordy = self.stemmer.stem(total_emotions[i][j])
+
+
+        for wordy in words:
+            wordy = wordy.lower()
+            wordy = self.stemmer.stem(wordy)
+            if (wordy in negations):
+                negationSeen = True
+                shouldSwitch = True
+            if (negationSeen and any(p in wordy and not p == "\'" for p in string.punctuation)): 
+                shouldSwitch = not shouldSwitch
+                negationSeen = False
+
+            if (not shouldSwitch):
+                for letter in wordy: 
+                    if letter in string.punctuation: 
+                        wordy = wordy.replace(letter, "")
+            
+                for i in range(len(total_emotions)):
+                    if wordy in total_emotions[i]:
+                        emotion_scores[i] += 1
+        return emotion_names[emotion_scores.index(max(emotion_scores))]
+        
+                #emotion = {"anger": 0, "disgust": 0.5, "fear": 0.2, "sadness": 0.4}#NRCLex(wordy)
+            
+    '''top = emotion.top_emotions
+    for em in top:
+        num = total_emotions.get(em[0], 0)
+        if(num == 0):
+            total_emotions[em[0]] = em[1]
+        else:
+            total_emotions[em[0]] += em[1]
+
+        sorted_emotions = dict(sorted(total_emotions.items(), key=lambda item: item[1]))
+        #print(sorted_emotions)
+
+        return list(sorted_emotions.keys())[-1]
+
+
+        
+        emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
+        sentence = re.sub('"([^"]*)"', ' ', sentence)
+        emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
+        anger = 0
+
+        words = sentence.split(' ')
+        for wordy in words:
+
+
+            wordy = wordy.lower()
+            #wordy = self.stemmer.stem(wordy)
+            print(wordy)
+            if wordy in emolex_words[emolex_words.anger == 1].word[:][1]:
+                anger += 1 
+            #print("hi everyone!! ", wordy, emolex_words[emolex_words.word == wordy].anger.type())
+            
+        #print(emolex_df.head(12))
+        #negations!!!!!! maybe also multipliers???
+
+        #anger += emolex_words[emolex_words.word == 'charitable'].anger
+        print("anger is", anger)
+        #for i in range()
+        return "anger"
+        '''
+        
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):
         """Generate a list of indices of movies to recommend using collaborative

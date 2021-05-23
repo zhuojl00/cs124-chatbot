@@ -100,7 +100,7 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         updatedLine = self.preprocess(line)
-        pattern = chatbot.extract_titles(updatedLine)
+        pattern = self.extract_titles(updatedLine)
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -146,7 +146,21 @@ class Chatbot:
         ########################################################################
         
         return text
-
+    # helper function that checks if title of movie is a substring return -1 if movie is not substring
+    # return the index when the first word matches    
+    def isSubstring(self, splited_input, splited_movie):
+        M = len(splited_movie)
+        N = len(splited_input) 
+    
+        # A loop to slide pat[] one by one
+        for i in range(N - M + 1):
+            # For current index i,
+            # check for pattern match
+            if (splited_input[i] == splited_movie[0]):
+                if (splited_input[i:i+M] == splited_movie):
+                    return i
+        return -1
+        
     def extract_titles(self, preprocessed_input):
         """Extract potential movie titles from a line of pre-processed text.
 
@@ -169,15 +183,16 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        # print("hello")
+        print("hello")
         preprocessed_input = preprocessed_input.lower()
         # self.potential_titles["hi"] = "bye"
         if self.creative:
             # print("bye")
-            splited_input = re.split(r" ", preprocessed_input)
-            self.potential_titles[splited_input] = "hi"
-            for movietitle in self.movies:
-                splited_movie = re.split(r" ", movietitle)
+            splited_input = re.split(r'\w', preprocessed_input)
+            # self.potential_titles[splited_input] = "hi"
+            for movie in self.movieTitles:
+                movietitle = movie[0]
+                splited_movie = re.split(r'\w', movietitle)
                 startIndex = isSubstring(splited_input, splited_movie)
                 if startIndex in potential_titles:
                     old_title = potential_titles[startIndex]
@@ -185,30 +200,10 @@ class Chatbot:
                         self.potential_titles[startIndex] = movietitle
                 else:
                     self.potential_titles[startIndex] = movietitle
+            print(self.potential_titles)
             return self.potential_titles.values()
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
-    
-    # helper function that checks if title of movie is a substring return -1 if movie is not substring
-    # return the index when the first word matches    
-    def isSubstring(self, splited_input, splited_movie):
-        # fullString = ''.join(splited_input)
-        # subString = ''.join(splited_movie)
-        # if subString in fullString:
-        #     return fullString.index(subString)
-        # else:
-        #     return -1
-        M = len(splited_movie)
-        N = len(splited_input) 
-    
-        # A loop to slide pat[] one by one
-        for i in range(N - M + 1):
-            # For current index i,
-            # check for pattern match
-            if (splited_input[i] == splited_movie[0]):
-                if (splited_input[i:i+M] == splited_movie):
-                    return i
-        return -1
 
     def find_movies_by_title(self, title):
         """ Given a movie title, return a list of indices of matching movies.

@@ -19,6 +19,7 @@ class Chatbot:
         self.name = 'moviebot'
         self.creative = creative
         self.stemmer = PorterStemmer()
+        self.potential_titles = {} # {startIndex: titles}
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
@@ -168,25 +169,27 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
+        # print("hello")
         preprocessed_input = preprocessed_input.lower()
+        # self.potential_titles["hi"] = "bye"
         if self.creative:
+            # print("bye")
             splited_input = re.split(r"\w", preprocessed_input)
-            potential_titles = {} #{startIndex: titles}
-            
+            self.potential_titles[splited_input] = "hi"
             for movietitle in self.movies:
                 splited_movie = re.split(r"\w", movietitle)
                 startIndex = isSubstring(splited_input, splited_movie)
                 if startIndex in potential_titles:
                     old_title = potential_titles[startIndex]
                     if len(old_title) < movietitle:
-                        potential_titles[startIndex] = movietitle
+                        self.potential_titles[startIndex] = movietitle
                 else:
-                    potential_titles[startIndex] = movietitle
+                    self.potential_titles[startIndex] = movietitle
                 # loop through other matches and see if the ones wiht the same starting index
                 # that is a subset of the ccurrent match if so remove it
             # titles += [title for _, title in potential_titles] #get rid of tuples
             # titles = list(set(titles))
-            return potential_titles.values()
+            return self.potential_titles.values()
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
     # helper function that checks if title of movie is a substring return -1 if movie is not substring
@@ -199,15 +202,15 @@ class Chatbot:
         #     return fullString.index(subString)
         # else:
         #     return -1
-        M = len(bag_of_movie)
-        N = len(bag_of_input) 
+        M = len(splited_movie)
+        N = len(splited_input) 
     
         # A loop to slide pat[] one by one
         for i in range(N - M + 1):
             # For current index i,
             # check for pattern match
-            if (bag_of_input[i] == bag_of_movie[0]):
-                if (bag_of_input[i:i+M] == bag_of_movie):
+            if (splited_input[i] == splited_movie[0]):
+                if (splited_input[i:i+M] == splited_movie):
                     return i
         return -1
 
@@ -229,7 +232,8 @@ class Chatbot:
         :param title: a string containing a movie title
         :returns: a list of indices of matching movies
         """
-        
+        # self.potential_titles["movies"] = "bye"
+        # print(self.potential_titles)
         articles = ["a", "an", "the"]
         titles = []
         title = title.lower()

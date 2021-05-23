@@ -765,7 +765,6 @@ class Chatbot:
                 check_indices.append(i)
             else:
                 rated_indices.append(i)
-        
         rankings = []
         for i in check_indices:
             rxi = 0

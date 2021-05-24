@@ -19,7 +19,6 @@ class Chatbot:
         self.name = 'moviebot'
         self.creative = creative
         self.stemmer = PorterStemmer()
-        self.potential_titles = {} # {startIndex: titles}
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
@@ -101,8 +100,6 @@ class Chatbot:
         ########################################################################
         updatedLine = self.preprocess(line)
         pattern = self.extract_titles(updatedLine)
-        print("potential_titles", self.potential_titles)
-        print("pattern ", pattern)
         if len(pattern)> 0:
             print("So you loved ", pattern[0], ", huh?") 
             self.find_movies_by_title(pattern[0])
@@ -153,13 +150,18 @@ class Chatbot:
     def isSubstring(self, splited_input, splited_movie):
         M = len(splited_movie)
         N = len(splited_input) 
-    
+        startWord = splited_movie[0]
+        
         # A loop to slide pat[] one by one
-        for i in range(N - M + 1):
+        for i in range(N):
             # For current index i,
             # check for pattern match
-            if (splited_input[i] == splited_movie[0]):
+            if (splited_input[i] == startWord):
+                # print(splited_movie)
+                # print("splited input ", splited_input[i:i+M])
                 if (splited_input[i:i+M] == splited_movie):
+                    # print(splited_movie)
+                    # print(i)
                     return i
         return -1
 
@@ -186,22 +188,43 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         if self.creative:
-            input_lower = preprocessed_input.lower()
+            potential_titles = {} # {startIndex: titles}
+            input_lower = preprocessed_input.lower().strip(string.punctuation)
             splited_input = re.split(r' ', input_lower)
-            print(splited_input)
+            
             for movie in self.movieTitles:
                 movietitle = movie[0].lower()
+                articles = ["a", "an", "the"]
+                containsYear = re.findall('\(\d{4}\)', movietitle)
+                if len(containsYear) != 0:
+                    movietitle = movietitle[:-7]   
+                for article in articles:
+                    size = len(article)
+                    if (movietitle[-size-2:] == ', ' + article):
+                            # print(movietitle)
+                            movietitle = article + " " + movietitle[:-size-2]
+                    # if(len(containsYear) == 0):
+                    #     # print(movietitle[-size:])
+                    #     if (movietitle[-size-2:] == ', ' + article):
+                    #         # print(movietitle)
+                    #         movietitle = article + " " + movietitle[:-size-2]
+                    # else:
+                    #     # print(movietitle[-(size+9):-7])
+                    #     if (movietitle[-size-9:-7] == ', ' + article):
+                    #         # print("title ", movietitle)
+                    #         movietitle = article + ' ' + movietitle[:-size-9]       
                 splited_movie = re.split(r' ', movietitle)
-                print(splited_movie)
+                # print(splited_movie)
                 startIndex = self.isSubstring(splited_input, splited_movie)
                 if startIndex >= 0:
-                    if startIndex in self.potential_titles:
-                        old_title = self.potential_titles[startIndex]
+                    if startIndex in potential_titles:
+                        old_title = potential_titles[startIndex]
                         if len(old_title) < len(movietitle):
-                            self.potential_titles[startIndex] = movietitle
+                            potential_titles[startIndex] = movietitle
                     else:
-                        self.potential_titles[startIndex] = movietitle
-            return list(self.potential_titles.values())
+                        potential_titles[startIndex] = movietitle
+                # print(potential_titles)
+            return list(potential_titles.values())
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
 

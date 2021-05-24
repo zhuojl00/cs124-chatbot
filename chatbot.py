@@ -15,7 +15,7 @@ from porter_stemmer import PorterStemmer
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
 
-    def __init__(self, creative=False):
+    def __init__(self, creative=True):
         # The chatbot's default name is `moviebot`.
         # TODO: Give your chatbot a new name.
         self.name = 'moviebot'
@@ -27,7 +27,7 @@ class Chatbot:
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
-      
+
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
         ########################################################################
@@ -110,6 +110,7 @@ class Chatbot:
         # code in a modular fashion to make it easier to improve and debug.    #
         ########################################################################
         updatedLine = self.preprocess(line)
+
         if(self.creative):
             self.validate_emotions(self.find_emotion(line))
         all_candidates = []
@@ -121,7 +122,7 @@ class Chatbot:
             print("Great, you liked", self.movieTitles[movie_index][0])
 
         else:
-            pattern = re.findall('"([^"]*)"', updatedLine)
+            pattern = self.extract_titles(updatedLine)
             if len(pattern) > 0:
                 candidate_index = self.find_movies_by_title(pattern[0])
                 candidate_title = []
@@ -134,7 +135,6 @@ class Chatbot:
                     print("Which one did you mean?", ', '.join(candidate_title))
             else:
                 print("Sorry, I don't understand. Tell me about a movie that you have seen.")
-        
 
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
@@ -209,6 +209,17 @@ class Chatbot:
         ########################################################################
         
         return text
+    # helper function that checks if title of movie is a substring return -1 if movie is not substring
+    # return the index when the first word matches    
+    def isSubstring(self, splited_input, splited_movie):
+        M = len(splited_movie)
+        N = len(splited_input) 
+ 
+        for i in range(N):
+            if (splited_input[i] == splited_movie[0]):
+                if (splited_input[i:i+M] == splited_movie):
+                    return i
+        return -1
 
 
 
@@ -234,7 +245,33 @@ class Chatbot:
         pre-processed with preprocess()
         :returns: list of movie titles that are potentially in the text
         """
-        return re.findall('"([^"]*)"', preprocessed_input)
+        if self.creative:
+            potential_titles = {} # {startIndex: titles}
+            input_lower = preprocessed_input.lower().strip(string.punctuation)
+            splited_input = re.split(r' ', input_lower)
+            
+            for movie in self.movieTitles:
+                movietitle = movie[0].lower()
+                articles = ["a", "an", "the"]
+                containsYear = re.findall('\(\d{4}\)', movietitle)
+                if len(containsYear) != 0:
+                    movietitle = movietitle[:-7]   
+                for article in articles:
+                    size = len(article)
+                    if (movietitle[-size-2:] == ', ' + article):
+                            movietitle = article + " " + movietitle[:-size-2]     
+                splited_movie = re.split(r' ', movietitle)
+                startIndex = self.isSubstring(splited_input, splited_movie)
+                if startIndex >= 0:
+                    if startIndex in potential_titles:
+                        old_title = potential_titles[startIndex]
+                        if len(old_title) < len(movietitle):
+                            potential_titles[startIndex] = movietitle
+                    else:
+                        potential_titles[startIndex] = movietitle
+            return list(potential_titles.values())
+        else: 
+            return re.findall('"([^"]*)"', preprocessed_input)
     
     def edit_distance (self, string1, string2):
         matrix = np.zeros([len(string1) + 1, len(string2) + 1])
@@ -328,7 +365,6 @@ class Chatbot:
                     titles.append(i)
             # print(titles)
             return titles
-
 
     def extract_sentiment(self, preprocessed_input):
         """Extract a sentiment rating from a line of pre-processed text.
@@ -834,22 +870,7 @@ class Chatbot:
         # scores.                                                              #
         ########################################################################
 
-        # Populate this list with k movie indices to recommend to the user.
-        # possible.sort(key = lambda x:-x[1])
-        # extract all the rows that we have seen
         recommendations = []
-        # rated_movies = ratings_matrix[user_ratings!=0,:] # seen, able to compare the new movie to this movie
-        # simMaxtrix = np.dot(ratings_matrix, rated_movies.T) # figure out shapes (transpose)
-        # scores = np.dot(simMaxtrix, user_ratings[user_ratings!=0])
-        # scores = np.reshape(scores, -1) #reshape for dot prodect dimension
-        # #argsort
-        # sorted_movies = np.argsort(-scores)
-        # for movie in sorted_movies:
-        #     if (user_ratings[movie] == 0):
-        #         recommendations.append(movie)
-        #         if len(recommendations) == k:
-        #             break
-
         # loop through reccommendations until we get k recommendations we have not seen
         check_indices = []
         rated_indices = []

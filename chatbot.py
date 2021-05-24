@@ -150,18 +150,10 @@ class Chatbot:
     def isSubstring(self, splited_input, splited_movie):
         M = len(splited_movie)
         N = len(splited_input) 
-        startWord = splited_movie[0]
-        
-        # A loop to slide pat[] one by one
+ 
         for i in range(N):
-            # For current index i,
-            # check for pattern match
-            if (splited_input[i] == startWord):
-                # print(splited_movie)
-                # print("splited input ", splited_input[i:i+M])
+            if (splited_input[i] == splited_movie[0]):
                 if (splited_input[i:i+M] == splited_movie):
-                    # print(splited_movie)
-                    # print(i)
                     return i
         return -1
 
@@ -201,20 +193,8 @@ class Chatbot:
                 for article in articles:
                     size = len(article)
                     if (movietitle[-size-2:] == ', ' + article):
-                            # print(movietitle)
-                            movietitle = article + " " + movietitle[:-size-2]
-                    # if(len(containsYear) == 0):
-                    #     # print(movietitle[-size:])
-                    #     if (movietitle[-size-2:] == ', ' + article):
-                    #         # print(movietitle)
-                    #         movietitle = article + " " + movietitle[:-size-2]
-                    # else:
-                    #     # print(movietitle[-(size+9):-7])
-                    #     if (movietitle[-size-9:-7] == ', ' + article):
-                    #         # print("title ", movietitle)
-                    #         movietitle = article + ' ' + movietitle[:-size-9]       
+                            movietitle = article + " " + movietitle[:-size-2]     
                 splited_movie = re.split(r' ', movietitle)
-                # print(splited_movie)
                 startIndex = self.isSubstring(splited_input, splited_movie)
                 if startIndex >= 0:
                     if startIndex in potential_titles:
@@ -223,7 +203,6 @@ class Chatbot:
                             potential_titles[startIndex] = movietitle
                     else:
                         potential_titles[startIndex] = movietitle
-                # print(potential_titles)
             return list(potential_titles.values())
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)

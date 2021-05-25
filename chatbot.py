@@ -56,6 +56,8 @@ class Chatbot:
         return greeting_message
 
     def validate_emotions(self, emotion):
+        if emotion == "no emotion":
+            return
         negatives = ['surprise', 'disgust', 'fear', 'anger', 'negative', 'sadness']
         positives = ["anticip", "trust", "joy"]
         if (emotion in negatives):
@@ -116,12 +118,14 @@ class Chatbot:
         all_candidates = []
         for i in range(len(self.movieTitles)):
             all_candidates.append(i)
+        #print("arguments are ", updatedLine)
         exact = self.disambiguate(updatedLine, all_candidates)
+        #print("exact is", exact)
         if len(exact) == 1:
             movie_index = exact[0]
             print("Great, you liked", self.movieTitles[movie_index][0])
-
         else:
+            #pattern = re.findall('"([^"]*)"', updatedLine)
             pattern = self.extract_titles(updatedLine)
             if len(pattern) > 0:
                 candidate_index = self.find_movies_by_title(pattern[0])
@@ -192,30 +196,30 @@ class Chatbot:
         '''TESTING FINE GRAINED SENITMENT EXTRACTION!!!'''
         if self.creative:
             sent = "I loved \"Zootopia\" "
-            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+            #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
             sent = "\"Zootopia\" was terrible."
             
-            print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
+            #print("extracting sentiment, expecting -2", self.extract_sentiment(sent))
             sent = "I really reeally liked \"Zootopia\"!!!"
             
             
-            print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
+            #print("extracting sentiment, expecting 2", self.extract_sentiment(sent))
 
         '''TESTING EDIT DISTANCE!!!!!!!!!'''
         if (self.creative):
             mispell = "the notbook"
-            print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
+            #print("finding possible matches, expecting [5448] got:", self.find_movies_closest_to_title(mispell))
             mispell = "Blargdeblargh"
-            print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
+            #print("finding possible matches, expecting [] got:", self.find_movies_closest_to_title(mispell))
 
             mispell = "BAT-MAAAN"
-            print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
+            #print("finding possible matches, expecting [524, 5743] got:", self.find_movies_closest_to_title(mispell))
 
             mispell = "Te"
-            print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
+            #print("finding possible matches, expecting [8082, 4511, 1664] got:", self.find_movies_closest_to_title(mispell))
 
             mispell  = "Sleeping Beaty"
-            print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
+            #print("finding possible matches, expecting [1656] got:", self.find_movies_closest_to_title(mispell))
 
 
         
@@ -292,30 +296,34 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         if self.creative:
-            potential_titles = {} # {startIndex: titles}
-            input_lower = preprocessed_input.lower().strip(string.punctuation)
-            splited_input = re.split(r' ', input_lower)
-            
-            for movie in self.movieTitles:
-                movietitle = movie[0].lower()
-                articles = ["a", "an", "the"]
-                containsYear = re.findall('\(\d{4}\)', movietitle)
-                if len(containsYear) != 0:
-                    movietitle = movietitle[:-7]   
-                for article in articles:
-                    size = len(article)
-                    if (movietitle[-size-2:] == ', ' + article):
-                            movietitle = article + " " + movietitle[:-size-2]     
-                splited_movie = re.split(r' ', movietitle)
-                startIndex = self.isSubstring(splited_input, splited_movie)
-                if startIndex >= 0:
-                    if startIndex in potential_titles:
-                        old_title = potential_titles[startIndex]
-                        if len(old_title) < len(movietitle):
+            if (len(re.findall('"([^"]*)"', preprocessed_input)) == 0):
+                potential_titles = {} # {startIndex: titles}
+                input_lower = preprocessed_input.lower().strip(string.punctuation)
+                splited_input = re.split(r' ', input_lower)
+                
+                for movie in self.movieTitles:
+                    movietitle = movie[0].lower()
+                    articles = ["a", "an", "the"]
+                    containsYear = re.findall('\(\d{4}\)', movietitle)
+                    if len(containsYear) != 0:
+                        movietitle = movietitle[:-7]   
+                    for article in articles:
+                        size = len(article)
+                        if (movietitle[-size-2:] == ', ' + article):
+                                movietitle = article + " " + movietitle[:-size-2]     
+                    splited_movie = re.split(r' ', movietitle)
+                    startIndex = self.isSubstring(splited_input, splited_movie)
+                    if startIndex >= 0:
+                        if startIndex in potential_titles:
+                            old_title = potential_titles[startIndex]
+                            if len(old_title) < len(movietitle):
+                                potential_titles[startIndex] = movietitle
+                        else:
                             potential_titles[startIndex] = movietitle
-                    else:
-                        potential_titles[startIndex] = movietitle
-            return list(potential_titles.values())
+                # print(list(potential_titles.values()))
+                return list(potential_titles.values())
+            else:
+                return re.findall('"([^"]*)"', preprocessed_input)
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
     
@@ -380,7 +388,6 @@ class Chatbot:
             realTitle = title
             containsYear = re.findall('\(\d{4}\)', title)
             ##Titanic  OR titanic, the (1997) the
-            ##TODO: LOWERCASE VS UPPERCASE
             for article in articles:
                 size = len(article)
                 if (title[0:size] == article):
@@ -657,7 +664,7 @@ class Chatbot:
         
         for i in range(len(spell)):
             if (spell_distances[i] <= minimum):
-                print(spell_distances[i])
+                #print(spell_distances[i])
                 smallSpell.append(spell[i])
         return smallSpell
 
@@ -684,6 +691,7 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
+        #clarification = "harry potter"
 
         funnel = []
         tokens = clarification.lower().split()
@@ -870,49 +878,13 @@ class Chatbot:
                 for i in range(len(total_emotions)):
                     if wordy in total_emotions[i]:
                         emotion_scores[i] += 1
-        return emotion_names[emotion_scores.index(max(emotion_scores))]
-        
-                #emotion = {"anger": 0, "disgust": 0.5, "fear": 0.2, "sadness": 0.4}#NRCLex(wordy)
-            
-    '''top = emotion.top_emotions
-    for em in top:
-        num = total_emotions.get(em[0], 0)
-        if(num == 0):
-            total_emotions[em[0]] = em[1]
+        if (max(emotion_scores) > 0):
+            return emotion_names[emotion_scores.index(max(emotion_scores))]
         else:
-            total_emotions[em[0]] += em[1]
-
-        sorted_emotions = dict(sorted(total_emotions.items(), key=lambda item: item[1]))
-        #print(sorted_emotions)
-
-        return list(sorted_emotions.keys())[-1]
-
-
+            return "no sentiment"
         
-        emolex_df = pd.read_csv(filepath,  names=["word", "emotion", "association"], skiprows=45, sep='\t')
-        sentence = re.sub('"([^"]*)"', ' ', sentence)
-        emolex_words = emolex_df.pivot(index='word', columns='emotion', values='association').reset_index()
-        anger = 0
-
-        words = sentence.split(' ')
-        for wordy in words:
-
-
-            wordy = wordy.lower()
-            #wordy = self.stemmer.stem(wordy)
-            print(wordy)
-            if wordy in emolex_words[emolex_words.anger == 1].word[:][1]:
-                anger += 1 
-            #print("hi everyone!! ", wordy, emolex_words[emolex_words.word == wordy].anger.type())
             
-        #print(emolex_df.head(12))
-        #negations!!!!!! maybe also multipliers???
 
-        #anger += emolex_words[emolex_words.word == 'charitable'].anger
-        print("anger is", anger)
-        #for i in range()
-        return "anger"
-        '''
         
 
     def recommend(self, user_ratings, ratings_matrix, k=10, creative=False):

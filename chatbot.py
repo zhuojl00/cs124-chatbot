@@ -292,30 +292,34 @@ class Chatbot:
         :returns: list of movie titles that are potentially in the text
         """
         if self.creative:
-            potential_titles = {} # {startIndex: titles}
-            input_lower = preprocessed_input.lower().strip(string.punctuation)
-            splited_input = re.split(r' ', input_lower)
-            
-            for movie in self.movieTitles:
-                movietitle = movie[0].lower()
-                articles = ["a", "an", "the"]
-                containsYear = re.findall('\(\d{4}\)', movietitle)
-                if len(containsYear) != 0:
-                    movietitle = movietitle[:-7]   
-                for article in articles:
-                    size = len(article)
-                    if (movietitle[-size-2:] == ', ' + article):
-                            movietitle = article + " " + movietitle[:-size-2]     
-                splited_movie = re.split(r' ', movietitle)
-                startIndex = self.isSubstring(splited_input, splited_movie)
-                if startIndex >= 0:
-                    if startIndex in potential_titles:
-                        old_title = potential_titles[startIndex]
-                        if len(old_title) < len(movietitle):
+            if (len(re.findall('"([^"]*)"', preprocessed_input)) == 0):
+                potential_titles = {} # {startIndex: titles}
+                input_lower = preprocessed_input.lower().strip(string.punctuation)
+                splited_input = re.split(r' ', input_lower)
+                
+                for movie in self.movieTitles:
+                    movietitle = movie[0].lower()
+                    articles = ["a", "an", "the"]
+                    containsYear = re.findall('\(\d{4}\)', movietitle)
+                    if len(containsYear) != 0:
+                        movietitle = movietitle[:-7]   
+                    for article in articles:
+                        size = len(article)
+                        if (movietitle[-size-2:] == ', ' + article):
+                                movietitle = article + " " + movietitle[:-size-2]     
+                    splited_movie = re.split(r' ', movietitle)
+                    startIndex = self.isSubstring(splited_input, splited_movie)
+                    if startIndex >= 0:
+                        if startIndex in potential_titles:
+                            old_title = potential_titles[startIndex]
+                            if len(old_title) < len(movietitle):
+                                potential_titles[startIndex] = movietitle
+                        else:
                             potential_titles[startIndex] = movietitle
-                    else:
-                        potential_titles[startIndex] = movietitle
-            return list(potential_titles.values())
+                # print(list(potential_titles.values()))
+                return list(potential_titles.values())
+            else:
+                return re.findall('"([^"]*)"', preprocessed_input)
         else: 
             return re.findall('"([^"]*)"', preprocessed_input)
     

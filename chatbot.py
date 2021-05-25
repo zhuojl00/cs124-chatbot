@@ -118,11 +118,6 @@ class Chatbot:
 
         if(self.creative):
             self.validate_emotions(self.find_emotion(line))
-        if self.data_points == 5:
-            recs = self.recommend(self.user_ratings, self.ratings)
-            if len(recs) >= 1:
-                print("Given what you told me, I think you would like " + self.titles[recs[0]][0])
-
         all_candidates = []
         for i in range(len(self.movieTitles)):
             all_candidates.append(i)
@@ -161,6 +156,11 @@ class Chatbot:
                     print("I've never heard of " + pattern[0] +",sorry. Tell me about another movie you like?")
                 else:
                     print("Which one did you mean?", ', '.join(candidate_title))
+            if self.data_points == 5:
+                recs = self.recommend(self.user_ratings, self.ratings)
+                if len(recs) >= 1:
+                    print("Given what you told me, I think you would like " + self.titles[recs[0]][0])
+                    self.data_points = 0
             else:
                 if self.creative:
                         updatedLine = line.replace('?', ' ?')

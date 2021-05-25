@@ -21,12 +21,15 @@ class Chatbot:
         self.name = 'moviebot'
         self.creative = creative
         self.stemmer = PorterStemmer()
+        self.data_points = 0
         # This matrix has the following shape: num_movies x num_users
         # The values stored in each row i and column j is the rating for
         # movie i by user j
         self.titles, ratings = util.load_ratings('data/ratings.txt')
         self.movieTitles = util.load_titles('data/movies.txt')
         self.sentiment = util.load_sentiment_dictionary('data/sentiment.txt')
+        self.user_ratings = np.zeros(ratings.shape[0])
+
 
         ########################################################################
         # TODO: Binarize the movie ratings matrix.                             #
@@ -113,6 +116,11 @@ class Chatbot:
 
         if(self.creative):
             self.validate_emotions(self.find_emotion(line))
+        if self.data_points == 5:
+            recs = self.recommend(self.user_ratings, self.ratings)
+            if len(recs) >= 1:
+                print("Given what you told me, I think you would like " + self.titles[recs[0]][0])
+
         all_candidates = []
         for i in range(len(self.movieTitles)):
             all_candidates.append(i)
@@ -123,6 +131,9 @@ class Chatbot:
 
         else:
             pattern = self.extract_titles(updatedLine)
+            if not self.creative and len(pattern) > 1:
+                print("Sorry, I can only handle on title at a time! Can you only tell me about one movie?")
+                return
             if len(pattern) > 0:
                 candidate_index = self.find_movies_by_title(pattern[0])
                 candidate_title = []
@@ -130,9 +141,21 @@ class Chatbot:
                     candidate_title.append(self.movieTitles[c][0])
 
                 if len(candidate_index) == 1:
-                    print("So you loved ", pattern[0], ", huh?")
+                    if self.extract_sentiment(updatedLine) == 0:
+                        print("I'm sorry, I'm not sure if you liked " + pattern[0] + ". Can you tell me more about the movie?")
+                    elif self.extract_sentiment(updatedLine) == 1:
+                        index = candidate_index[0]
+                        self.user_ratings[index] = self.extract_sentiment(updatedLine)
+                        print("So you liked " + pattern[0] + "? Tell me what you thought about another movie!")
+                        self.data_points += 1
+                    elif self.extract_sentiment(updatedLine) == -1:
+                        index = candidate_index[0]
+                        self.user_ratings[index] = self.extract_sentiment(updatedLine)
+                        print("So you didn't like " + pattern[0] + "? Tell me what you thought about another movie!")
+                        self.data_points += 1
+                elif len(candidate_index) == 0:
+                    print("I've never heard of " + pattern[0] +",sorry. Tell me about another movie you like?")
                 else:
-                    
                     print("Which one did you mean?", ', '.join(candidate_title))
             else:
                 if self.creative:

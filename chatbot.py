@@ -10,7 +10,7 @@ import string
 #import pandas as pd
 #from nrclex import NRCLex
 from porter_stemmer import PorterStemmer
-
+#new version 5/25
 # noinspection PyMethodMayBeStatic
 class Chatbot:
     """Simple class to implement the chatbot for PA 6."""
@@ -990,18 +990,20 @@ class Chatbot:
     # 5. Write a description for your chatbot here!                            #
     ############################################################################
     def intro(self):
+        
         """Return a string to use as your chatbot's description for the user.
 
         Consider adding to this description any information about what your
         chatbot can do and how the user can interact with it.
         """
-        return """
+        """
         Your task is to implement the chatbot as detailed in the PA6
         instructions.
         Remember: in the starter mode, movie names will come in quotation marks
         and expressions of sentiment will be simple!
         TODO: Write here the description for your own chatbot!
         """
+        return "Hi! My name is JERC and I'm a movie chatbot."
 
 
 if __name__ == '__main__':

@@ -132,9 +132,55 @@ class Chatbot:
                 if len(candidate_index) == 1:
                     print("So you loved ", pattern[0], ", huh?")
                 else:
+                    
                     print("Which one did you mean?", ', '.join(candidate_title))
             else:
-                print("Sorry, I don't understand. Tell me about a movie that you have seen.")
+                if self.creative:
+                        updatedLine = line.replace('?', ' ?')
+                        tokens = updatedLine.split(" ")
+                        question = False
+                        if tokens[len(tokens) - 1] == "?":
+                            question = True
+                        words = re.findall('([\w(?:\'\w)?]+)',updatedLine)
+                        if (words[len(words)-1] == "?"):
+                            words.pop()
+                        greetings = ["hi", "sup", "hello", "yo", "hey"]
+                        if words[0].lower() in greetings:
+                            print("Hello!")
+                        elif len(words) > 2 and question:
+                            response = ""
+                            start = 2
+                            if '\'' in words[0]:
+                                start = 1
+                            for i in range(start,len(words)):
+                                if words[i].lower() == "me":
+                                    response += "you" + " "
+                                elif words[i].lower() == "my":
+                                    response += "your" + " "
+                                elif words[i].lower() == "mine":
+                                    response += "yours" + " "
+                                elif words[i].lower() == "yours":
+                                    response += "mine" + " "
+                                elif words[i].lower() == "your":
+                                    response += "my" + " "
+                                elif words[i].lower() == "you":
+                                    response += "me" + " "
+                                else:
+                                    response += words[i] + " "
+                            if words[0].lower() == "can" and words[1].lower() == 'you':
+                                print ("No, I cannot " + response.strip() + ".")
+                            if words[0].lower() == "what's":
+                                print ("I do not know what " + response.strip() + " is.")
+                            if words[0].lower() == "do" and words[1].lower() == 'you':
+                                print ("I do not " + response.strip() + ".")
+                        elif words[0].lower() == "i'm":
+                            response = ""
+                            for i in range(1,len(words)):
+                                response += words[i] + " "
+                            print(response)
+                            print("Wow, you really are "+ response.strip() + ".")
+                        else:
+                            print("Sorry, I don't understand. Tell me about a movie that you have seen.")        
 
         if self.creative:
             response = "I processed {} in creative mode!!".format(line)
@@ -509,8 +555,41 @@ class Chatbot:
         :returns: a list of tuples, where the first item in the tuple is a movie
         title, and the second is the sentiment in the text toward that movie
         """
-        
-        pass
+        movies = self.extract_titles(preprocessed_input)
+        preprocessed_input = re.sub('"([^"]*)"', ' ', preprocessed_input)
+        input = re.findall('([\w(?:\'\w)?]+)',preprocessed_input)
+        start = -1
+        end = len(input)
+        prev = 0
+        answer = []
+        currdiv = ""
+        nextdiv = ""
+        dividers = ['and','but','or','yet']
+        for movie in movies:
+            if (start >= len(input)-1):
+                senti = prev
+                answer.append((movie, senti))
+                break
+            for i in range(start+1, end):
+                if input[i] in dividers:
+                    end = i
+                    nextdiv = input[i]
+                    break
+            sentence = ""
+            for i in range(start+1,end):
+                sentence += input[i] + " "
+            local = self.extract_sentiment(sentence)
+            if input[end-1] == "not":
+                senti = -1
+            elif local == 0 and (currdiv == "and" or currdiv == "or"):
+                senti = prev + local
+            else: senti = local
+            prev = senti
+            answer.append((movie, senti))
+            start = end 
+            currdiv = nextdiv
+            end = len(input)
+        return answer
 
     def find_movies_closest_to_title(self, title, max_distance=3):
         """Creative Feature: Given a potentially misspelled movie title,
@@ -537,6 +616,7 @@ class Chatbot:
         :returns: a list of movie indices with titles closest to the given title
         and within edit distance max_distance
         """
+
         spell = []
         minimum = max_distance + 3
         spell_distances = []
@@ -604,6 +684,7 @@ class Chatbot:
         :returns: a list of indices corresponding to the movies identified by
         the clarification
         """
+
         funnel = []
         tokens = clarification.lower().split()
         #print("tokens: ", tokens)

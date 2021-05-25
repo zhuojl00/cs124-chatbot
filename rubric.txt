@@ -48,6 +48,12 @@ that they were written by a human.
 What are some possible ramifications of anthropomorphizing chatbot systems? Can you think of any ways that 
 engineers could ensure that users can easily distinguish the chatbot responses from those of a human?
 
+People may listen to the advice of a chatbot and act on it in a way that causes harm. Fixing the chatbot
+may not solve this issue, since the information provided to it may have contributed to the advice it gave.
+Engineers can use non-human names for the chatbot so that the user knows they are not talking to a human.
+They can also make chatbots that constantly use neutral tones and objective langauge so that they come across
+as clearly non-human.
+
 
 
 #########################################################################################
